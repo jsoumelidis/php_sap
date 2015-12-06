@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <NwRfcSdk>E:\VisualStudio\Libraries\nwrfcsdk_720_x86</NwRfcSdk>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir>$(PhpDir)\ext\</OutDir>
+    <TargetName>$(ProjectName)-$(PhpVersion)-VC$(PlatformToolsetVersion)-$(PlatformTarget)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(NwRfcSdk)\include;$(PhpSrcDir);$(PhpSrcDir)\main;$(PhpSrcDir)\Zend;$(PhpSrcDir)\win32;$(PhpSrcDir)\TSRM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>PHP_SAP_EXPORTS;ZEND_DEBUG=0;COMPILE_DL_PHP_SAP;SAPwithUNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(NwRfcSdk)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(PhpLib);sapnwrfc.lib;sapdecfICUlib.lib;libsapucum.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="NwRfcSdk">
+      <Value>$(NwRfcSdk)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

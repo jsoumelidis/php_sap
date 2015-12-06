@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "php_sap", "php_sap\php_sap.vcxproj", "{C58520D9-5F90-46B7-B827-C0AFA1372DA2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release (php-5.3)|x86 = Release (php-5.3)|x86
+		Release (php-5.3-nts)|x86 = Release (php-5.3-nts)|x86
+		Release (php-5.4)|x86 = Release (php-5.4)|x86
+		Release (php-5.4-nts)|x86 = Release (php-5.4-nts)|x86
+		Release (php-5.5)|x86 = Release (php-5.5)|x86
+		Release (php-5.5-nts)|x86 = Release (php-5.5-nts)|x86
+		Release (php-5.6)|x86 = Release (php-5.6)|x86
+		Release (php-5.6-nts)|x86 = Release (php-5.6-nts)|x86
+		Release (php-7.0)|x86 = Release (php-7.0)|x86
+		Release (php-7.0-nts)|x86 = Release (php-7.0-nts)|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.3)|x86.ActiveCfg = Release (php-5.3)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.3)|x86.Build.0 = Release (php-5.3)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.3-nts)|x86.ActiveCfg = Release (php-5.3-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.3-nts)|x86.Build.0 = Release (php-5.3-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.4)|x86.ActiveCfg = Release (php-5.4)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.4)|x86.Build.0 = Release (php-5.4)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.4-nts)|x86.ActiveCfg = Release (php-5.4-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.4-nts)|x86.Build.0 = Release (php-5.4-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.5)|x86.ActiveCfg = Release (php-5.5)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.5)|x86.Build.0 = Release (php-5.5)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.5-nts)|x86.ActiveCfg = Release (php-5.5-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.5-nts)|x86.Build.0 = Release (php-5.5-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.6)|x86.ActiveCfg = Release (php-5.6)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.6)|x86.Build.0 = Release (php-5.6)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.6-nts)|x86.ActiveCfg = Release (php-5.6-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-5.6-nts)|x86.Build.0 = Release (php-5.6-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-7.0)|x86.ActiveCfg = Release (php-7.0)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-7.0)|x86.Build.0 = Release (php-7.0)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-7.0-nts)|x86.ActiveCfg = Release (php-7.0-nts)|Win32
+		{C58520D9-5F90-46B7-B827-C0AFA1372DA2}.Release (php-7.0-nts)|x86.Build.0 = Release (php-7.0-nts)|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,235 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release (php-5.3)|Win32">
+      <Configuration>Release (php-5.3)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-5.3-nts)|Win32">
+      <Configuration>Release (php-5.3-nts)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-5.4)|Win32">
+      <Configuration>Release (php-5.4)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-5.4-nts)|Win32">
+      <Configuration>Release (php-5.4-nts)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-5.5)|Win32">
+      <Configuration>Release (php-5.5)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-5.5-nts)|Win32">
+      <Configuration>Release (php-5.5-nts)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-5.6)|Win32">
+      <Configuration>Release (php-5.6)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-5.6-nts)|Win32">
+      <Configuration>Release (php-5.6-nts)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-7.0)|Win32">
+      <Configuration>Release (php-7.0)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release (php-7.0-nts)|Win32">
+      <Configuration>Release (php-7.0-nts)</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C58520D9-5F90-46B7-B827-C0AFA1372DA2}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>php_sap</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0)|Win32'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0-nts)|Win32'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6)|Win32'">
+    <PlatformToolset>v110</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5)|Win32'" Label="Configuration">
+    <PlatformToolset>v110</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3)|Win32'" Label="Configuration">
+    <PlatformToolset>v90</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4)|Win32'" Label="Configuration">
+    <PlatformToolset>v90</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6-nts)|Win32'" Label="Configuration">
+    <PlatformToolset>v110</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5-nts)|Win32'" Label="Configuration">
+    <PlatformToolset>v110</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3-nts)|Win32'" Label="Configuration">
+    <PlatformToolset>v90</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4-nts)|Win32'" Label="Configuration">
+    <PlatformToolset>v90</PlatformToolset>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0)|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="php_win32.props" />
+    <Import Project="php_7.0.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0-nts)|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="php_win32.props" />
+    <Import Project="php_7.0-nts.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6-nts)|Win32'">
+    <Import Project="php_win32.props" />
+    <Import Project="php_5.6-nts.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5-nts)|Win32'" Label="PropertySheets">
+    <Import Project="php_win32.props" />
+    <Import Project="php_5.5-nts.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3-nts)|Win32'" Label="PropertySheets">
+    <Import Project="php_win32.props" />
+    <Import Project="php_5.3-nts.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4-nts)|Win32'" Label="PropertySheets">
+    <Import Project="php_win32.props" />
+    <Import Project="php_5.4-nts.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6)|Win32'">
+    <Import Project="php_win32.props" />
+    <Import Project="php_5.6.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5)|Win32'" Label="PropertySheets">
+    <Import Project="php_win32.props" />
+    <Import Project="php_5.5.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3)|Win32'" Label="PropertySheets">
+    <Import Project="php_win32.props" />
+    <Import Project="php_ts.props" />
+    <Import Project="php_5.3.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4)|Win32'" Label="PropertySheets">
+    <Import Project="php_win32.props" />
+    <Import Project="php_5.4.props" />
+    <Import Project="php_sap.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0-nts)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6-nts)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5-nts)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3-nts)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4-nts)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3)|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4)|Win32'" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0)|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-7.0-nts)|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6-nts)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5-nts)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3-nts)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4-nts)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.6)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.5)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.3)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (php-5.4)|Win32'">
+    <Link />
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\php_sap.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\php_sap.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
