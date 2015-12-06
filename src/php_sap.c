@@ -1836,11 +1836,6 @@ static int sap_export_table(RFC_TABLE_HANDLE th, RFC_TYPE_DESC_HANDLE tdh, zval 
 	unsigned int rowCount;
 	RFC_ERROR_INFO e;
 	RFC_RC rc;
-#if FALSE
-	unsigned int fieldCount, fi;
-	HashTable *fieldsHt;
-	RFC_FIELD_DESC *fields, *field;
-#endif
 
 	if (RFC_OK != RfcGetRowCount(th, &rowCount, (RFC_ERROR_INFO*)err)) {
 		SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetRowCount", FAILURE);
@@ -1848,57 +1843,6 @@ static int sap_export_table(RFC_TABLE_HANDLE th, RFC_TYPE_DESC_HANDLE tdh, zval 
 
 	array_init_size(rv, rowCount);
 
-	/*
-	 * Returning tables can be huge (a lot of rows), which would require a lot of RFC_TYPE_DESC_HANDLE iterating
-	 * when exporting each structure using the sap_export_structure function. Instead we iterate once over table's
-	 * RFC_TYPE_DESC_HANDLE and store it's fields descriptions in memory for fast reference
-	 */
-#if FALSE
-	if (RFC_OK != RfcGetFieldCount(tdh, &fieldCount, (RFC_ERROR_INFO*)err)) {
-		SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetFieldCount", FAILURE);
-	}
-
-	ALLOC_HASHTABLE(fieldsHt);
-	zend_hash_init(fieldsHt, fieldCount, NULL, NULL, 0);
-
-	fields = field = emalloc(fieldCount * sizeof(RFC_FIELD_DESC));
-
-	for (fi = 0; fi < fieldCount; fi++, field++)
-	{
-		char *fname;
-		int fnamelen;
-#if PHP_VERSION_ID >= 70000
-		zend_string *zsfname;
-#endif
-
-		if (RFC_OK != RfcGetFieldDescByIndex(tdh, fi, field, (RFC_ERROR_INFO*)err)) {
-			retval = FAILURE;
-			SAP_ERROR_SET_RFCFUNCTION(err, "RfcGetFieldDescByIndex", sizeof("RfcGetFieldDescByIndex") - 1);
-			goto end;
-		}
-
-		if (SUCCESS != sapuc_to_utf8(field->name, &fname, &fnamelen, err)) {
-			retval = FAILURE;
-			goto end;
-		}
-
-#if PHP_VERSION_ID >= 70000
-		zsfname = zend_string_init(fname, fnamelen, 0);
-
-		field = zend_hash_add_new_ptr(fieldsHt, zsfname, field);
-
-		zend_string_release(zsfname);
-
-		if (NULL == field) {
-			goto end;
-		}
-#else
-		if (SUCCESS != zend_hash_add(fieldsHt, fname, fnamelen + 1, &field, sizeof(RFC_FIELD_DESC*), NULL)) {
-			goto end;
-		}
-#endif
-	}
-#endif
 	for (rc = RfcMoveToFirstRow(th, &e); rc == RFC_OK; rc = RfcMoveToNextRow(th, &e))
 	{
 		RFC_STRUCTURE_HANDLE sh;
@@ -1906,8 +1850,7 @@ static int sap_export_table(RFC_TABLE_HANDLE th, RFC_TYPE_DESC_HANDLE tdh, zval 
 
 		if (NULL == (sh = RfcGetCurrentRow(th, (RFC_ERROR_INFO*)err))) {
 			retval = FAILURE;
-			SAP_ERROR_SET_RFCFUNCTION(err, "RfcGetCurrentRow", sizeof("RfcGetCurrentRow") - 1);
-			goto end;
+			SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetCurrentRow", FAILURE);
 		}
 
 #if PHP_VERSION_ID < 70000
@@ -1920,46 +1863,12 @@ static int sap_export_table(RFC_TABLE_HANDLE th, RFC_TYPE_DESC_HANDLE tdh, zval 
 		if (NULL == pzrow) { /* Out of memory, full hashtable etc... */
 			break;
 		}
-#if FALSE
-		array_init_size(pzrow, fieldCount);
 
-		/* Export row fields */
-		SAP_HASH_FOREACH_STR_KEY_PTR(fieldsHt, fname, fnamelen, field)
-		{
-			zval *pzfield;
-
-#if PHP_VERSION_ID < 70000
-			MAKE_STD_ZVAL(pzfield);
-
-			if (SUCCESS != zend_hash_update(Z_ARRVAL_P(pzrow), fname, fnamelen + 1, &pzfield, sizeof(zval*), NULL)) {
-				zval_ptr_dtor(&pzfield);
-				pzfield = NULL;
-			}
-#else
-			pzfield = zend_hash_add_new(Z_ARRVAL_P(pzrow), _p->key, &EG(uninitialized_zval));
-#endif
-
-			if (NULL == pzfield) { /* Out of memory, full hashtable etc... */
-				break;
-			}
-
-			if (SUCCESS != sap_export(sh, field->name, field->type, field->typeDescHandle, field->nucLength, pzfield, err TSRMLS_CC)) {
-				retval = FAILURE;
-				goto end;
-			}
-		}
-		SAP_HASH_FOREACH_END();
-#else
 		if (SUCCESS != sap_export_structure(sh, tdh, pzrow, err TSRMLS_CC)) {
 			return FAILURE;
 		}
-#endif
 	}
 
-end:
-#if FALSE
-	efree(fields);
-#endif
 	return retval;
 }
 
@@ -2323,31 +2232,6 @@ PHP_METHOD(Sap, call)
 		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&err);
 	}
 }
-
-/*
-PHP_METHOD(Sap, setFunctionClass)
-{
-	int res;
-	char *ddicname;
-	int ddicnamelen;
-	zend_class_entry *fce = sap_function_ce;
-	sap_object *intern;
-
-	PHP_SAP_PARSE_PARAMS_BEGIN()
-		res = PHP_SAP_PARSE_PARAMS(ZEND_NUM_ARGS() TSRMLS_CC, "sC", &ddicname, &ddicnamelen, &fce);
-	PHP_SAP_PARSE_PARAMS_END();
-
-	if (FAILURE == res) {
-		RETURN_FALSE;
-	}
-
-	intern = sap_get_sap_object(getThis());
-
-	intern->func_ce = fce;
-
-	RETURN_ZVAL(getThis(), 1, 0);
-}
-*/
 
 PHP_METHOD(Sap, fetchFunction)
 {
