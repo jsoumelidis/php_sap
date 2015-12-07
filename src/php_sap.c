@@ -1257,10 +1257,10 @@ static int sap_connection_open(php_sap_connection *connection, SAPRFC_ERROR_INFO
 
 static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, unsigned int length, zval *zvalue, SAPRFC_ERROR_INFO *err TSRMLS_DC)
 {
-	if (NULL == zvalue || Z_TYPE_P(zvalue) == IS_NULL) {
-		return SUCCESS;
-	}
-
+#if PHP_VERSION_ID >= 70000
+	ZVAL_DEREF(zvalue);
+#endif
+	
 	switch (type)
 	{
 		case RFCTYPE_INT:
@@ -1345,6 +1345,31 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 
 			break;
 		}
+		case RFCTYPE_BYTE:
+		case RFCTYPE_XSTRING:
+		{
+			/* This data type requires php string */
+			if (Z_TYPE_P(zvalue) != IS_STRING)
+			{
+				SAP_UC *scalarTypeU16 = (SAP_UC*)RfcGetTypeAsString(type);
+				char *scalarTypeU8;
+				int scalarTypeU8Len;
+
+				if (SUCCESS != sapuc_to_utf8(scalarTypeU16, &scalarTypeU8, &scalarTypeU8Len, err)) {
+					return FAILURE;
+				}
+
+				php_sap_error(err, "SAPRFC_INVALID_PARAMETER", -1, "Value for type %s must be a string (%s given)", scalarTypeU8, zend_get_type_by_const(Z_TYPE_P(zvalue)));
+
+				return FAILURE;
+			}
+			
+			if (RFC_OK != RfcSetBytes(dh, name, (SAP_RAW*)Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue), (RFC_ERROR_INFO*)err)) {
+				SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcSetBytes", FAILURE);
+			}
+
+			break;
+		}
 #if HAVE_DATE
 		case RFCTYPE_TIME:
 		case RFCTYPE_DATE:
@@ -1379,33 +1404,12 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 
 				break;
 			}
+			else if (Z_TYPE_P(zvalue) == IS_STRING && Z_STRLEN_P(zvalue) == 0) {
+				return SUCCESS;
+			}
+			/* else: go to case default */
 		}
 #endif
-		case RFCTYPE_BYTE:
-		case RFCTYPE_XSTRING:
-		{
-			/* This data type requires php string */
-			if (Z_TYPE_P(zvalue) != IS_STRING)
-			{
-				SAP_UC *scalarTypeU16 = (SAP_UC*)RfcGetTypeAsString(type);
-				char *scalarTypeU8;
-				int scalarTypeU8Len;
-
-				if (SUCCESS != sapuc_to_utf8(scalarTypeU16, &scalarTypeU8, &scalarTypeU8Len, err)) {
-					return FAILURE;
-				}
-
-				php_sap_error(err, "SAPRFC_INVALID_PARAMETER", -1, "Value for type %s must be a string (%s given)", scalarTypeU8, zend_get_type_by_const(Z_TYPE_P(zvalue)));
-
-				return FAILURE;
-			}
-			
-			if (RFC_OK != RfcSetBytes(dh, name, (SAP_RAW*)Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue), (RFC_ERROR_INFO*)err)) {
-				SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcSetBytes", FAILURE);
-			}
-
-			break;
-		}
 		default:
 		{
 			zval copy;
@@ -1490,6 +1494,10 @@ static int sap_import_structure(RFC_STRUCTURE_HANDLE sh, RFC_TYPE_DESC_HANDLE td
 			continue;
 		}
 
+#if PHP_VERSION_ID >= 70000
+		ZVAL_DEREF(zfvalue);
+#endif
+
 		if (SUCCESS != sap_import(sh, field.name, field.type, field.typeDescHandle, field.nucLength, zfvalue, err TSRMLS_CC)) {
 			return FAILURE;
 		}
@@ -1505,6 +1513,10 @@ static int sap_import_table(RFC_TABLE_HANDLE th, RFC_TYPE_DESC_HANDLE tdh, HashT
 	SAP_HASH_FOREACH_VAL(rows, zrow)
 	{
 		RFC_STRUCTURE_HANDLE sh;
+
+#if PHP_VERSION_ID >= 70000
+		ZVAL_DEREF(zrow);
+#endif
 
 		if (Z_TYPE_P(zrow) != IS_ARRAY) {
 			php_sap_error(err, "SAPRFC_INVALID_PARAMETER", -1, "Value for an RFCTYPE_STRUCTURE must be an array (%s given)", zend_get_type_by_const(Z_TYPE_P(zrow)));
@@ -1526,6 +1538,11 @@ static int sap_import_table(RFC_TABLE_HANDLE th, RFC_TYPE_DESC_HANDLE tdh, HashT
 
 static int sap_import(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_TYPE_DESC_HANDLE tdh, unsigned int length, zval *zvalue, SAPRFC_ERROR_INFO *err TSRMLS_DC)
 {
+
+#if PHP_VERSION_ID >= 70000
+	ZVAL_DEREF(zvalue);
+#endif
+
 	switch (type)
 	{
 		case RFCTYPE_TABLE:
@@ -1621,7 +1638,7 @@ static int sap_export_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 		case RFCTYPE_XSTRING:
 		{
 			SAP_RAW *rawBuffer = NULL;
-			size_t rawBufferLen = nucLength * sizeof(SAP_RAW);
+			unsigned int rawBufferLen = nucLength * sizeof(SAP_RAW);
 
 			/*
 			* RFCTYPE_XSTRING is a variable length type and we don't know what buffer size is required
@@ -1954,7 +1971,7 @@ static int sap_function_invoke(php_sap_function *function, php_sap_connection *c
 		if (!(zpvalue = sap_hash_find_zval(imports, pname, pnamelen))) {
 			continue;
 		}
-
+		
 		if (SUCCESS != sap_import(fh, sp->param.name, sp->param.type, sp->param.typeDescHandle, sp->param.nucLength, zpvalue, err TSRMLS_CC)) {
 			return FAILURE;
 		}
