@@ -1,7 +1,7 @@
 # php_sap
 PHP (>=5.3, 7) extension for calling SAP Remote Function Modules (SAP with Unicode)
 
-Builds available for PHP version 5.3, 5.4, 5.5, 5.6 (x86, ts, nts) and PHP version 7.0 (x86, x64, ts, nts).
+Builds available for PHP version 5.3, 5.4, 5.5, 5.6 (x86, ts, nts) and PHP version 7.0 (x86, x64, ts, nts) under Windows.
 Not compiled (yet) on other platforms
 
 You can use the provided Microsoft Visual Studio 2015 solution under the vs/ directory to compile the extension by yourself under Windows.
