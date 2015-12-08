@@ -2,8 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
-    <NwRfcSdk>E:\VisualStudio\Libraries\nwrfcsdk_720_x86</NwRfcSdk>
+    <NwRfcSdk>E:\VisualStudio\Libraries\nwrfcsdk_720_x64</NwRfcSdk>
   </PropertyGroup>
+  <PropertyGroup />
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(NwRfcSdk)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

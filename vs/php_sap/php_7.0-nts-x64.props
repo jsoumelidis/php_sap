@@ -2,16 +2,11 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
-    <PhpDir>C:\php\php-5.3.29</PhpDir>
-    <PhpLib>$(PhpDir)\dev\php5ts.lib</PhpLib>
-    <PhpSrcDir>C:\php\php-5.3.29-src</PhpSrcDir>
-    <PhpVersion>5.3</PhpVersion>
+    <PhpDir>C:\php\php-7.0.0-nts-x64</PhpDir>
+    <PhpLib>$(PhpDir)\dev\php7.lib</PhpLib>
+    <PhpSrcDir>C:\php\php-7.0.0-x64-src</PhpSrcDir>
+    <PhpVersion>7.0-nts</PhpVersion>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <ClCompile>
-      <PreprocessorDefinitions>ZTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-  </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="PhpDir">
       <Value>$(PhpDir)</Value>
