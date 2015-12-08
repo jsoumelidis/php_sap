@@ -59,8 +59,8 @@ try
 	 */
 	$myRfcReadTable = $sap->fetchFunction('RFC_READ_TABLE', 'MyRfcReadTable', array('Argument #1'));
 	
-	/* Reads all fields for the first 5 rows of table 'T100' with field SPRSL = 'D' */
-	$data = $myRfcReadTable->select('*', 'T100', array('SPRSL' => 'D'), 5);
+	/* Reads the selected fields for the first 5 rows of table 'T100' with constraint SPRSL = 'D' */
+	$data = $myRfcReadTable->select(array('SPRSL' => 'LANG', 'ARBGB' => 'MSGID', 'MSGNR', 'TEXT'), 'T100', array('SPRSL' => 'D'), 5);
 }
 catch (SapException $se)
 {

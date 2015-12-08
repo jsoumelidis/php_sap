@@ -41,4 +41,12 @@ class Sap
 	 * @throws SapException function not found or other error occurs
 	 */
 	public function call($function, array $args) : array {}
+	
+	/**
+	 * Sets the default SapFunction class for this Sap Object when fetching remote functions.
+	 *
+	 * @param string $class A class derived from SapFunction
+	 * @return Sap
+	 */
+	public function setFunctionClass(string $class) : Sap {}
 }

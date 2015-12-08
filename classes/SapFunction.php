@@ -35,4 +35,20 @@ class SapFunction
 	 * @return bool
 	 */
 	public function setActive(string $parameter, bool $active) : bool {}
+	
+	/**
+	 * Retrieve all parameter names for this function module
+	 *
+	 * @return array
+	 */
+	public function getParameters() : array {}
+	
+	/**
+	 * Get the DDIC name of a TABLE or STRUCTURE parameter
+	 * Returns false if parameter not found or is not a TABLE|STRUCTURE
+	 *
+	 * @param string $parameter
+	 * @return string|false
+	 */
+	public function getTypeName(string $parameter) {}
 }
