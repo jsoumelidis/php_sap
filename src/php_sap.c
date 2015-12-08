@@ -212,7 +212,6 @@ typedef struct _sap_object {
 
 ZEND_BEGIN_MODULE_GLOBALS(sap)
 	int		rtrim_export_strings;
-	int		set_se37_default_values;
 ZEND_END_MODULE_GLOBALS(sap)
 
 ZEND_DECLARE_MODULE_GLOBALS(sap)
@@ -226,12 +225,10 @@ ZEND_DECLARE_MODULE_GLOBALS(sap)
 static ZEND_MODULE_GLOBALS_CTOR_D(sap)
 {
 	sap_globals->rtrim_export_strings = 1;
-	sap_globals->set_se37_default_values = 0;
 }
 
 PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "On", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
-	STD_PHP_INI_ENTRY("sap.set_se37_default_values", "Off", PHP_INI_ALL, OnUpdateBool, set_se37_default_values, zend_sap_globals, sap_globals)
 PHP_INI_END()
 
 SAPRFC_ERROR_INFO sap_last_error;
@@ -2586,7 +2583,6 @@ PHP_METHOD(SapFunction, getParameters)
 	sap_function *intern;
 	char *pname;
 	int pnamelen;
-	SAPRFC_PARAMETER_DESC *sp;
 
 	intern = sap_get_function(getThis());
 
