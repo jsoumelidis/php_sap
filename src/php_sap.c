@@ -775,7 +775,7 @@ static void * sap_hash_find_ptr(HashTable *ht, char *key, int keylen)
 #endif
 }
 
-static zval * sap_hash_find_zval(HashTable *ht, char *key, int keylen)
+zval * sap_hash_find_zval(HashTable *ht, char *key, int keylen)
 {
 #if PHP_VERSION_ID < 70000
 	zval **ptr_ptr;
@@ -1666,6 +1666,10 @@ static int sap_import(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_
 			return sap_import_structure(sh, tdh, Z_ARRVAL_P(zvalue), err TSRMLS_CC);
 		}
 		default: {
+			if (Z_TYPE_P(zvalue) == IS_NULL) {
+				return SUCCESS; /* Leave default value */
+			}
+
 			return sap_import_scalar(dh, name, type, length, zvalue, err TSRMLS_CC);
 		}
 	}
@@ -1840,9 +1844,10 @@ static int sap_export_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 			RFC_CHAR *uChars = emalloc(nucLength * sizeof(RFC_CHAR));
 			char *str;
 			int len;
-			
+
 			memset(uChars, 0, nucLength * sizeof(RFC_CHAR));
 			
+
 			if (RFC_OK != RfcGetChars(dh, name, uChars, nucLength, (RFC_ERROR_INFO*)err)) {
 				SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetChars", FAILURE);
 			}
@@ -2051,7 +2056,9 @@ static int sap_function_invoke(php_sap_function *function, php_sap_connection *c
 			continue;
 		}
 
-		if (!(zpvalue = sap_hash_find_zval(imports, pname, pnamelen))) {
+		zpvalue = sap_hash_find_zval(imports, pname, pnamelen);
+
+		if (NULL == zpvalue) {
 			continue;
 		}
 		
@@ -2283,6 +2290,7 @@ PHP_METHOD(Sap, __construct)
 
 	if (NULL != zlogonParameters && autoConnect && SUCCESS != sap_connection_open(intern->connection, &sap_last_error)) {
 		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		RETURN_FALSE;
 	}
 }
 
@@ -2333,6 +2341,7 @@ PHP_METHOD(Sap, call)
 
 	if (NULL == (func = sap_fetch_function(name, namelen, intern->connection, &sap_last_error TSRMLS_CC))) {
 		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		RETURN_FALSE;
 	}
 
 	if (NULL != zimports) {
@@ -2347,6 +2356,7 @@ PHP_METHOD(Sap, call)
 
 	if (SUCCESS != cresult) {
 		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		RETURN_FALSE;
 	}
 }
 
@@ -2494,10 +2504,12 @@ PHP_METHOD(SapFunction, getName)
 	if (RFC_OK != RfcGetFunctionName(intern->function_descr->fdh, funcNameU, (RFC_ERROR_INFO*)&sap_last_error)) {
 		SAP_ERROR_SET_RFCFUNCTION(&sap_last_error, "RfcGetFunctionName", sizeof("RfcGetFunctionName") - 1);
 		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		RETURN_FALSE;
 	}
 
 	if (SUCCESS != sapuc_to_utf8(funcNameU, &name, &namelen, &sap_last_error)) {
 		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		RETURN_FALSE;
 	}
 
 #if PHP_VERSION_ID >= 70000
@@ -2638,12 +2650,12 @@ PHP_METHOD(SapFunction, getTypeName)
 		if (RFC_OK != RfcGetTypeName(sp->param.typeDescHandle, typeNameU, (RFC_ERROR_INFO*)&sap_last_error)) {
 			SAP_ERROR_SET_RFCFUNCTION(&sap_last_error, "RfcGetTypeName", sizeof("RfcGetTypeName") - 1);
 			SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
-			return;
+			RETURN_FALSE;
 		}
 
 		if (SUCCESS != sapuc_to_utf8(typeNameU, &typeName, &typeNameLen, &sap_last_error)) {
 			SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
-			return;
+			RETURN_FALSE;
 		}
 
 #if PHP_VERSION_ID >= 70000
@@ -2977,13 +2989,16 @@ PHP_METHOD(SapRfcReadTable, select)
 											substr = substrtrimmed;
 											substrlen = substrtrimmedlen;
 										}
-									}
 #if PHP_VERSION_ID >= 70000
-									ZVAL_STRINGL(zfieldvalue, substr, substrlen);
-									efree(substr);
+										ZVAL_STRINGL(zfieldvalue, substr, substrlen);
+										efree(substr);
 #else
-									ZVAL_STRINGL(zfieldvalue, substr, substrlen, 0);
+										ZVAL_STRINGL(zfieldvalue, substr, substrlen, 0);
 #endif
+									}
+									else {
+										ZVAL_NULL(zfieldvalue);
+									}
 								}
 							}
 						}
