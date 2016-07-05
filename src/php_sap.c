@@ -1,5 +1,15 @@
 #include "php_sap.h"
 
+#if PHP_SAP_WITH_PTHREADS
+#define PTW32_INCLUDE_WINDOWS_H
+#ifdef TIME_H
+#define HAVE_STRUCT_TIMESPEC
+#endif //TIME_H
+
+#include "pthread.h"
+
+#endif //PHP_SAP_WITH_PTHREADS
+
 #include "php_ini.h"
 #include "ext\standard\info.h"
 
@@ -33,8 +43,9 @@
 	SAPRFC_ERROR_INFO *__err = (_err);							\
 	const char *__func = (_func);								\
 	unsigned int __funclen = (_funclen);						\
-	__err->errFunctionLen = __funclen;							\
-	memcpy(__err->errFunction, __func, __funclen);				\
+	__err->l_nwsdkfunction = __funclen;							\
+	memcpy(__err->nwsdkfunction, __func, __funclen);			\
+	memset(__err->nwsdkfunction + __funclen, 0, 1);				\
 } while (0);
 
 #define SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, _retval) SAP_ERROR_SET_RFCFUNCTION(_err, _func, strlen(_func)); return _retval
@@ -173,8 +184,8 @@ typedef enum _TRIM_TYPE {
 
 typedef struct _SAPRFC_ERROR_INFO {
 	RFC_ERROR_INFO err;
-	char errFunction[30];
-	unsigned int errFunctionLen;
+	char nwsdkfunction[30];
+	unsigned int l_nwsdkfunction;
 } SAPRFC_ERROR_INFO;
 
 typedef enum _SAPRFC_PARAM_STATE {
@@ -232,6 +243,11 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 SAPRFC_ERROR_INFO sap_last_error;
+
+#if PHP_SAP_WITH_PTHREADS
+pthread_mutex_t rfc_utf8_to_sapuc_mutex;
+pthread_mutex_t rfc_sapuc_to_utf8_mutex;
+#endif
 
 /**		php_sap module procedural functions -- begin	**/
 PHP_FUNCTION(sap_connect);
@@ -332,7 +348,24 @@ SAP_PHP_API zend_class_entry * php_sap_get_exception_ce(void)
 /* {{{ */
 
 /* SapException */
+PHP_METHOD(SapException, getMessageType);
+PHP_METHOD(SapException, getMessageId);
+PHP_METHOD(SapException, getMessageNumber);
+PHP_METHOD(SapException, getMessageVar1);
+PHP_METHOD(SapException, getMessageVar2);
+PHP_METHOD(SapException, getMessageVar3);
+PHP_METHOD(SapException, getMessageVar4);
+PHP_METHOD(SapException, getNwSdkFunction);
+
 const zend_function_entry sap_exception_fe[] = {
+	PHP_ME(SapException,	getMessageType,		NULL,	ZEND_ACC_PUBLIC)
+	PHP_ME(SapException,	getMessageId,		NULL,	ZEND_ACC_PUBLIC)
+	PHP_ME(SapException,	getMessageNumber,	NULL,	ZEND_ACC_PUBLIC)
+	PHP_ME(SapException,	getMessageVar1,		NULL,	ZEND_ACC_PUBLIC)
+	PHP_ME(SapException,	getMessageVar2,		NULL,	ZEND_ACC_PUBLIC)
+	PHP_ME(SapException,	getMessageVar3,		NULL,	ZEND_ACC_PUBLIC)
+	PHP_ME(SapException,	getMessageVar4,		NULL,	ZEND_ACC_PUBLIC)
+	PHP_ME(SapException,	getNwSdkFunction,	NULL,	ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 
@@ -340,7 +373,7 @@ const zend_function_entry sap_exception_fe[] = {
 PHP_METHOD(Sap, __construct);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, __construct), 0)
-ZEND_ARG_INFO(0, logonParameters)
+	ZEND_ARG_INFO(0, logonParameters)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, setFunctionClass);
@@ -507,64 +540,106 @@ static int utf8_substr(char *str, int len, unsigned int start, unsigned int leng
 	return SUCCESS;
 }
 
-static int utf8_to_sapuc(char *str, int len, SAP_UC **uc, unsigned int *uc_len, SAPRFC_ERROR_INFO *err)
+static int utf8_to_sapuc_l(char *str, int len, SAP_UC **uc, unsigned int *uc_len, SAPRFC_ERROR_INFO *err)
 {
-#if FALSE /* Option 1: let the NW library decide the appropriate buffer length we need for the conversion */
 	SAP_UC *retval = NULL;
-	unsigned int uclen = 0;
-	size_t ucsize;
-
-try_again:
-	/* +1 'cause the nw library will make string null-terminated */
-	ucsize = (uclen + 1) * sizeof(SAP_UC);
+	unsigned int sapuc_num_chars = 0;
+	RFC_RC res;
 	
-	retval = *uc = emalloc(ucsize);
-	memset(retval, 0, ucsize);
+try_again:
+	
+#if PHP_SAP_WITH_PTHREADS
+	/* Avoid concurrent access to the RfcSAPUCToUTF8 function */
+	pthread_mutex_lock(&rfc_utf8_to_sapuc_mutex);
+#endif
 
-	switch (RfcUTF8ToSAPUC((RFC_BYTE*)str, len, retval, &uclen, uc_len, (RFC_ERROR_INFO*)err))
+	res = RfcUTF8ToSAPUC((RFC_BYTE*)str, len, retval, &sapuc_num_chars, uc_len, (RFC_ERROR_INFO*)err);
+
+#if PHP_SAP_WITH_PTHREADS
+	pthread_mutex_unlock(&rfc_utf8_to_sapuc_mutex);
+#endif
+
+	switch (res)
 	{
 		case RFC_BUFFER_TOO_SMALL:
-			/* In case of RFC_BUFFER_TOO_SMALL the NW library fills 'uclen' with the required SAP_UC characters (not include the last null terminating SAP_UC char) */
-			efree(retval);
+		{
+			/**
+			* In case of RFC_BUFFER_TOO_SMALL the NW library fills 'sapuc_num_chars' with the required number
+			* of SAP_UC characters (including the last null terminating SAP_UC char)
+			*/
+			size_t uc_size = (sapuc_num_chars) * sizeof(SAP_UC);
+			
+			if (NULL != retval) {
+				retval = erealloc(retval, uc_size);
+			} else {
+				retval = emalloc(uc_size);
+			}
+
+			memset(retval, 0, uc_size);
+
 			goto try_again;
+		}
 		case RFC_OK:
+			if (NULL == retval) {
+				/**
+				 * retval will be NULL if str == "", so we have to allocate an empty SAP_UC string
+				 */
+				retval = mallocU(0);
+			}
+
+			*uc = retval;
+
 			return SUCCESS;
 		default:
-			efree(retval);
+			if (NULL != retval) {
+				efree(retval);
+			}
+
 			SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcUTF8ToSAPUC", FAILURE);
 	}
-#else /* Option 2: We need exactly 'utf8-len' + 1 SAP_UC chars */
-	SAP_UC *retval;
-	unsigned int uclen = strlenU8(str, len) + 1;
-	size_t ucsize = uclen * sizeof(SAP_UC);
+}
 
-	retval = *uc = emalloc(ucsize);
-	memset(retval, 0, ucsize);
+static int utf8_to_sapuc(char *str, SAP_UC **uc, unsigned int *uc_len, SAPRFC_ERROR_INFO *err)
+{
+	int strl = strlen(str);
 
-	if (RFC_OK == RfcUTF8ToSAPUC((RFC_BYTE*)str, len, retval, &uclen, uc_len, (RFC_ERROR_INFO*)err)) {
-		return SUCCESS;
-	}
-
-	efree(retval);
-
-	SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcUTF8ToSAPUC", FAILURE);
-#endif
+	return utf8_to_sapuc_l(str, strl, uc, uc_len, err);
 }
 
 static int sapuc_to_utf8_l(SAP_UC *strU16, unsigned int strU16len, char **strU8, int *strU8len, SAPRFC_ERROR_INFO *err)
 {
-	char *utf8;
+	char *utf8 = NULL;
 	unsigned int utf8len = 0;
-
+	RFC_RC res;
+	
 try_again:
-	utf8 = emalloc(utf8len + 1); /* +1 because the nw library will make output null-terminated */
-	memset(utf8, 0, utf8len + 1);
 
-	switch (RfcSAPUCToUTF8(strU16, strU16len, (RFC_BYTE*)utf8, &utf8len, strU8len, (RFC_ERROR_INFO*)err))
+#if PHP_SAP_WITH_PTHREADS
+	/* Avoid concurrent access to the RfcSAPUCToUTF8 function */
+	pthread_mutex_lock(&rfc_sapuc_to_utf8_mutex);
+#endif
+
+	res = RfcSAPUCToUTF8(strU16, strU16len, (RFC_BYTE*)utf8, &utf8len, strU8len, (RFC_ERROR_INFO*)err);
+
+#if PHP_SAP_WITH_PTHREADS
+	pthread_mutex_unlock(&rfc_sapuc_to_utf8_mutex);
+#endif
+
+	switch (res)
 	{
 		case RFC_BUFFER_TOO_SMALL: {
-			/* In case of RFC_BUFFER_TOO_SMALL the NW library fills 'utf8len' with the required number of bytes for convertion (not including the last null terminating byte) */
-			efree(utf8);
+			/**
+			 * In case of RFC_BUFFER_TOO_SMALL, nw sdk fills 'utf8len' with the required number
+			 * of bytes for convertion (including the trailing null byte)
+			 */
+			if (NULL != utf8) {
+				utf8 = erealloc(utf8, utf8len);
+			} else {
+				utf8 = emalloc(utf8len);
+			}
+			
+			memset(utf8, 0, utf8len);
+
 			goto try_again;
 		}
 		case RFC_OK: {
@@ -572,7 +647,10 @@ try_again:
 			return SUCCESS;
 		}
 		default: {
-			efree(utf8);
+			if (NULL != utf8) {
+				efree(utf8);
+			}
+			
 			SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcSAPUCToUTF8", FAILURE);
 		}
 	}
@@ -703,22 +781,22 @@ static void php_sap_error(SAPRFC_ERROR_INFO *err, const char *key, int code, cha
 
 static void sap_rfc_error_to_exception(SAPRFC_ERROR_INFO *err, zval *exception TSRMLS_DC)
 {
-	char *key, *msgType, *msgNumber, *msgv1, *msgv2, *msgv3, *msgv4, *message;
-	int keyLen, msgTypeLen, msgNumberLen, msgv1Len, msgv2Len, msgv3Len, msgv4Len, messageLen;
+	char *key, *msgType, *msgId, *msgNumber, *msgv1, *msgv2, *msgv3, *msgv4, *message;
+	int keyLen, msgTypeLen, msgIdLen, msgNumberLen, msgv1Len, msgv2Len, msgv3Len, msgv4Len, messageLen;
 	SAPRFC_ERROR_INFO e;
 
 	object_init_ex(exception, sap_ce_SapException);
 
-	if (SUCCESS == sapuc_to_utf8(err->err.key, &key, &keyLen, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "key", sizeof("key") - 1, key, keyLen TSRMLS_CC);
+	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgType, &msgType, &msgTypeLen, &e)) {
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGTY", sizeof("MSGTY") - 1, msgType, msgTypeLen TSRMLS_CC);
 	}
 
-	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgType, &msgType, &msgTypeLen, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "msgClass", sizeof("msgClass") - 1, msgType, msgTypeLen TSRMLS_CC);
+	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgClass, &msgId, &msgIdLen, &e)) {
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGID", sizeof("MSGID") - 1, msgId, msgIdLen TSRMLS_CC);
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgNumber, &msgNumber, &msgNumberLen, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "msgNumber", sizeof("msgNumber") - 1, msgNumber, msgNumberLen TSRMLS_CC);
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGNO", sizeof("MSGNO") - 1, msgNumber, msgNumberLen TSRMLS_CC);
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.message, &message, &messageLen, &e)) {
@@ -726,23 +804,27 @@ static void sap_rfc_error_to_exception(SAPRFC_ERROR_INFO *err, zval *exception T
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV1, &msgv1, &msgv1Len, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "msgv1", sizeof("msgv1") - 1, msgv1, msgv1Len TSRMLS_CC);
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGV1", sizeof("MSGV1") - 1, msgv1, msgv1Len TSRMLS_CC);
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV2, &msgv2, &msgv2Len, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "msgv2", sizeof("msgv2") - 1, msgv2, msgv2Len TSRMLS_CC);
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGV2", sizeof("MSGV2") - 1, msgv2, msgv2Len TSRMLS_CC);
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV3, &msgv3, &msgv3Len, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "msgv3", sizeof("msgv3") - 1, msgv3, msgv3Len TSRMLS_CC);
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGV3", sizeof("MSGV3") - 1, msgv3, msgv3Len TSRMLS_CC);
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV4, &msgv4, &msgv4Len, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "msgv4", sizeof("msgv4") - 1, msgv4, msgv1Len TSRMLS_CC);
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGV4", sizeof("MSGV4") - 1, msgv4, msgv1Len TSRMLS_CC);
 	}
 
-	if (err->errFunctionLen > 0) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "rfcFunction", sizeof("rfcFunction") - 1, err->errFunction, err->errFunctionLen TSRMLS_CC);
+	if (SUCCESS == sapuc_to_utf8(err->err.key, &key, &keyLen, &e)) {
+		zend_update_property_stringl(sap_ce_SapException, exception, "KEY", sizeof("KEY") - 1, key, keyLen TSRMLS_CC);
+	}
+
+	if (err->nwsdkfunction > 0) {
+		zend_update_property_stringl(sap_ce_SapException, exception, "nwsdkfunction", sizeof("nwsdkfunction") - 1, err->nwsdkfunction, err->l_nwsdkfunction TSRMLS_CC);
 	}
 
 	zend_update_property_long(sap_ce_SapException, exception, "code", sizeof("code") - 1, err->err.code TSRMLS_CC);
@@ -953,52 +1035,7 @@ static HashTable * sap_function_description_to_array(RFC_FUNCTION_DESC_HANDLE fd
 	return retval;
 }
 
-static void sap_connection_set_parameters(php_sap_connection *connection, HashTable *lparams)
-{
-	char *lparam;
-	int lparamlen;
-	zval *zlpvalue;
-
-	zend_hash_clean(connection->lparams);
-
-	SAP_HASH_FOREACH_STR_KEY_VAL(lparams, lparam, lparamlen, zlpvalue)
-	{
-		zval *pcopy;
-		zval *z;
-#if PHP_VERSION_ID >= 70000
-		zval zcopy;
-
-		pcopy = &zcopy;
-#endif
-
-		/* We are only interested on parameters with a string key */
-		if (NULL == lparam) {
-			continue;
-		}
-
-		/* param value must be string because it has to be converted later to a UTF-16 string */
-		if (UNEXPECTED(Z_TYPE_P(zlpvalue) != IS_STRING))
-		{
-#if PHP_VERSION_ID < 70000
-			MAKE_STD_ZVAL(pcopy);
-#endif
-			ZVAL_ZVAL(pcopy, zlpvalue, 1, 0);
-			convert_to_string(pcopy);
-			zlpvalue = pcopy;
-		}
-
-		if (z = sap_hash_add_zval(connection->lparams, lparam, lparamlen, zlpvalue)) {
-			Z_ADDREF_P(z);
-		}
-
-		if (UNEXPECTED(zlpvalue == pcopy)) {
-			sap_zval_ptr_dtor(pcopy);
-		}
-	}
-	SAP_HASH_FOREACH_END();
-}
-
-static php_sap_connection * sap_create_connection_resource(HashTable *logonParameters)
+static php_sap_connection * sap_create_connection_resource(HashTable *lparams)
 {
 	php_sap_connection *retval;
 
@@ -1008,8 +1045,55 @@ static php_sap_connection * sap_create_connection_resource(HashTable *logonParam
 	ALLOC_HASHTABLE(retval->lparams);
 	zend_hash_init(retval->lparams, 0, NULL, ZVAL_PTR_DTOR, 0);
 
-	if (NULL != logonParameters) {
-		sap_connection_set_parameters(retval, logonParameters);
+	if (NULL != lparams)
+	{
+		char *lparam;
+		int lparamlen;
+		zval *zlpvalue;
+
+		SAP_HASH_FOREACH_STR_KEY_VAL(lparams, lparam, lparamlen, zlpvalue)
+		{
+			zval *pcopy;
+			zval *z;
+#if PHP_VERSION_ID >= 70000
+			zval zcopy;
+
+			pcopy = &zcopy;
+#endif
+
+			/* We are only interested on parameters with a string key */
+			if (NULL == lparam) {
+				continue;
+			}
+
+			/* param value must be string because it has to be converted later to a UTF-16 string */
+			switch (Z_TYPE_P(zlpvalue))
+			{
+				case IS_STRING: break;
+				case IS_LONG:
+				case IS_DOUBLE:
+				case IS_NULL:
+				{
+#if PHP_VERSION_ID < 70000
+					MAKE_STD_ZVAL(pcopy);
+#endif
+					ZVAL_ZVAL(pcopy, zlpvalue, 1, 0);
+					convert_to_string(pcopy);
+					zlpvalue = pcopy;
+				}
+				default: continue; /* Ignore parameters with unsupported values */
+
+			}
+
+			if (z = sap_hash_add_zval(retval->lparams, lparam, lparamlen, zlpvalue)) {
+				Z_ADDREF_P(z);
+			}
+
+			if ( zlpvalue == pcopy ) {
+				sap_zval_ptr_dtor(pcopy);
+			}
+		}
+		SAP_HASH_FOREACH_END();
 	}
 
 	return retval;
@@ -1278,13 +1362,14 @@ static zend_object_value sap_function_clone_object(zval *object TSRMLS_DC)
 	zend_object_value retval;
 #endif
 	sap_function *clone_intern, *intern = sap_get_function(object);
-	
+	SAPRFC_ERROR_INFO error;
+
 	retval = sap_function_create_object_ex(Z_OBJCE_P(object), &clone_intern TSRMLS_CC);
 
 	/* Clone Function Parameters */
 	if (intern->function_descr)
 	{
-		clone_intern->function_descr = sap_create_function_resource(intern->function_descr->fdh, &sap_last_error TSRMLS_CC);
+		clone_intern->function_descr = sap_create_function_resource(intern->function_descr->fdh, &error TSRMLS_CC);
 
 		if (NULL == clone_intern->function_descr) {
 			zend_error(E_ERROR, "Could not clone function");
@@ -1306,6 +1391,55 @@ static zend_object_value sap_function_clone_object(zval *object TSRMLS_DC)
 	return retval;
 }
 
+static int sap_function_cast_object(zval *readobj, zval *retval, int type TSRMLS_DC)
+{
+	zend_object_handlers *std_object_handlers;
+#if PHP_VERSION_ID >= 70000
+	zval zname, *zname_ptr = &zname;
+#else
+	zval *zname_ptr;
+#endif
+
+	switch (type)
+	{
+		case IS_STRING:
+		{
+#if PHP_VERSION_ID >= 70000
+			if (SUCCESS == sap_call_object_method(readobj, Z_OBJCE_P(readobj), "getname", NULL, NULL, zname_ptr))
+			{
+				if (readobj == retval) {
+					zval_ptr_dtor(readobj);
+				}
+
+				
+#else
+			if (SUCCESS == sap_call_object_method(readobj, Z_OBJCE_P(readobj), "getname", NULL, NULL, &zname_ptr TSRMLS_CC))
+			{
+				if (readobj == retval) {
+					zval_ptr_dtor(&readobj);
+				}
+#endif
+				ZVAL_COPY_VALUE(retval, zname_ptr);
+
+				return SUCCESS;
+			}
+			else if (EG(exception)) {
+				return FAILURE;
+			}
+
+			break;
+		}
+
+		default: break;
+	}
+
+	std_object_handlers = zend_get_std_object_handlers();
+
+	if (std_object_handlers->cast_object) {
+		return std_object_handlers->cast_object(readobj, retval, type TSRMLS_CC);
+	}
+}
+
 static int sap_connection_open(php_sap_connection *connection, SAPRFC_ERROR_INFO *err)
 {
 	RFC_CONNECTION_PARAMETER *params, *p;
@@ -1320,6 +1454,7 @@ static int sap_connection_open(php_sap_connection *connection, SAPRFC_ERROR_INFO
 	}
 
 	params = p = emalloc(paramCount * sizeof(RFC_CONNECTION_PARAMETER));
+	memset(params, 0, paramCount * sizeof(RFC_CONNECTION_PARAMETER));
 
 	do {
 		char *lparam;
@@ -1332,11 +1467,11 @@ static int sap_connection_open(php_sap_connection *connection, SAPRFC_ERROR_INFO
 				continue;
 			}
 
-			if (SUCCESS != utf8_to_sapuc(Z_STRVAL_P(lpvalue), Z_STRLEN_P(lpvalue), (SAP_UC**)&p->value, &l, err)) {
+			if (SUCCESS != utf8_to_sapuc_l(Z_STRVAL_P(lpvalue), Z_STRLEN_P(lpvalue), (SAP_UC**)&p->value, &l, err)) {
 				return FAILURE;
 			}
 
-			if (SUCCESS != utf8_to_sapuc(lparam, lparamlen, (SAP_UC**)&p->name, &l, err)) {
+			if (SUCCESS != utf8_to_sapuc_l(lparam, lparamlen, (SAP_UC**)&p->name, &l, err)) {
 				return FAILURE;
 			}
 
@@ -1490,7 +1625,7 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 					return FAILURE;
 				}
 
-				if (SUCCESS != utf8_to_sapuc(Z_STRVAL(rv), Z_STRLEN(rv), &valU, &valUlen, err)) {
+				if (SUCCESS != utf8_to_sapuc_l(Z_STRVAL(rv), Z_STRLEN(rv), &valU, &valUlen, err)) {
 					return FAILURE;
 				}
 
@@ -1543,7 +1678,7 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 				}
 			}
 
-			if (SUCCESS != utf8_to_sapuc(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue), &strU, &strU16len, err)) {
+			if (SUCCESS != utf8_to_sapuc_l(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue), &strU, &strU16len, err)) {
 				return FAILURE;
 			}
 
@@ -2019,7 +2154,7 @@ static php_sap_function * sap_fetch_function(char *name, int nameLen, php_sap_co
 		return NULL;
 	}
 	
-	if (SUCCESS != utf8_to_sapuc(name, nameLen, &nameU, &nameUlen, err)) {
+	if (SUCCESS != utf8_to_sapuc_l(name, nameLen, &nameU, &nameUlen, err)) {
 		return NULL;
 	}
 
@@ -2127,91 +2262,100 @@ PHP_FUNCTION(sap_connect)
 
 PHP_FUNCTION(sap_last_error)
 {
-	char *key, *msgType, *msgNumber, *msgv1, *msgv2, *msgv3, *msgv4, *message;
-	int keyLen, msgTypeLen, msgNumberLen, msgv1Len, msgv2Len, msgv3Len, msgv4Len, messageLen;
+	char *key, *msgType, *msgClass, *msgNumber, *msgv1, *msgv2, *msgv3, *msgv4, *message;
+	int keyLen, msgTypeLen, msgClassLen, msgNumberLen, msgv1Len, msgv2Len, msgv3Len, msgv4Len, messageLen;
 	SAPRFC_ERROR_INFO e;
 
 	array_init(return_value);
 
-	add_assoc_long(return_value, "code", sap_last_error.err.code);
+	add_assoc_long(return_value, "CODE", sap_last_error.err.code);
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.key, &key, &keyLen, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "key", key, keyLen);
+		add_assoc_stringl(return_value, "KEY", key, keyLen);
 		efree(key);
 #else
-		add_assoc_stringl(return_value, "key", key, keyLen, 0);
+		add_assoc_stringl(return_value, "KEY", key, keyLen, 0);
 #endif
 	}
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.abapMsgType, &msgType, &msgTypeLen, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "msgType", msgType, msgTypeLen);
+		add_assoc_stringl(return_value, "MSGTY", msgType, msgTypeLen);
 		efree(msgType);
 #else
-		add_assoc_stringl(return_value, "msgType", msgType, msgTypeLen, 0);
+		add_assoc_stringl(return_value, "MSGTY", msgType, msgTypeLen, 0);
+#endif
+	}
+
+	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.abapMsgClass, &msgClass, &msgClassLen, &e)) {
+#if PHP_VERSION_ID >= 70000
+		add_assoc_stringl(return_value, "MSGID", msgClass, msgClassLen);
+		efree(msgClass);
+#else
+		add_assoc_stringl(return_value, "MSGID", msgClass, msgClassLen, 0);
 #endif
 	}
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.abapMsgNumber, &msgNumber, &msgNumberLen, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "msgNumber", msgNumber, msgNumberLen);
+		add_assoc_stringl(return_value, "MSGNO", msgNumber, msgNumberLen);
 		efree(msgNumber);
 #else
-		add_assoc_stringl(return_value, "msgNumber", msgNumber, msgNumberLen, 0);
+		add_assoc_stringl(return_value, "MSGNO", msgNumber, msgNumberLen, 0);
 #endif
 	}
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.abapMsgV1, &msgv1, &msgv1Len, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "msgv1", msgv1, msgv1Len);
+		add_assoc_stringl(return_value, "MSGV1", msgv1, msgv1Len);
 		efree(msgv1);
 #else
-		add_assoc_stringl(return_value, "msgv1", msgv1, msgv1Len, 0);
+		add_assoc_stringl(return_value, "MSGV1", msgv1, msgv1Len, 0);
 #endif
 	}
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.abapMsgV2, &msgv2, &msgv2Len, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "msgv2", msgv2, msgv2Len);
+		add_assoc_stringl(return_value, "MSGV2", msgv2, msgv2Len);
 		efree(msgv2);
 #else
-		add_assoc_stringl(return_value, "msgv2", msgv2, msgv2Len, 0);
+		add_assoc_stringl(return_value, "MSGV2", msgv2, msgv2Len, 0);
 #endif
 	}
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.abapMsgV3, &msgv3, &msgv3Len, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "msgv3", msgv3, msgv3Len);
+		add_assoc_stringl(return_value, "MSGV3", msgv3, msgv3Len);
 		efree(msgv3);
 #else
-		add_assoc_stringl(return_value, "msgv3", msgv3, msgv3Len, 0);
+		add_assoc_stringl(return_value, "MSGV3", msgv3, msgv3Len, 0);
 #endif
 	}
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.abapMsgV4, &msgv4, &msgv4Len, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "msgv4", msgv4, msgv4Len);
+		add_assoc_stringl(return_value, "MSGV4", msgv4, msgv4Len);
 		efree(msgv4);
 #else
-		add_assoc_stringl(return_value, "msgv4", msgv4, msgv4Len, 0);
+		add_assoc_stringl(return_value, "MSGV4", msgv4, msgv4Len, 0);
 #endif
 	}
 
 	if (SUCCESS == sapuc_to_utf8(sap_last_error.err.message, &message, &messageLen, &e)) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "message", message, messageLen);
+		add_assoc_stringl(return_value, "MSGTEXT", message, messageLen);
 		efree(message);
 #else
-		add_assoc_stringl(return_value, "message", message, messageLen, 0);
+		add_assoc_stringl(return_value, "MSGTEXT", message, messageLen, 0);
 #endif
 	}
 
-	if (sap_last_error.errFunctionLen > 0) {
+	if (sap_last_error.l_nwsdkfunction > 0) {
 #if PHP_VERSION_ID >= 70000
-		add_assoc_stringl(return_value, "rfcFunction", sap_last_error.errFunction, sap_last_error.errFunctionLen);
+		add_assoc_stringl(return_value, "nwsdkfunction", sap_last_error.nwsdkfunction, sap_last_error.l_nwsdkfunction);
 #else
-		add_assoc_stringl(return_value, "rfcFunction", sap_last_error.errFunction, sap_last_error.errFunctionLen, 1);
+		add_assoc_stringl(return_value, "nwsdkfunction", sap_last_error.nwsdkfunction, sap_last_error.l_nwsdkfunction, 1);
 #endif
 	}
 }
@@ -2259,6 +2403,69 @@ PHP_FUNCTION(sap_invoke_function)
 	}
 }
 
+PHP_METHOD(SapException, getMessageType)
+{
+	zval *zMessageType = sap_read_object_property_ex(getThis(), "MSGTY", sizeof("MSGTY") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageType, 1, 0);
+}
+
+PHP_METHOD(SapException, getMessageId)
+{
+	zval *zMessageId = sap_read_object_property_ex(getThis(), "MSGID", sizeof("MSGID") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageId, 1, 0);
+}
+
+PHP_METHOD(SapException, getMessageNumber)
+{
+	zval *zMessageNumber = sap_read_object_property_ex(getThis(), "MSGNO", sizeof("MSGNO") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageNumber, 1, 0);
+}
+
+PHP_METHOD(SapException, getMessageVar1)
+{
+	zval *zMessageVar1 = sap_read_object_property_ex(getThis(), "MSGV1", sizeof("MSGV1") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageVar1, 1, 0);
+}
+
+PHP_METHOD(SapException, getMessageVar2)
+{
+	zval *zMessageVar2 = sap_read_object_property_ex(getThis(), "MSGV2", sizeof("MSGV2") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageVar2, 1, 0);
+}
+
+PHP_METHOD(SapException, getMessageVar3)
+{
+	zval *zMessageVar3 = sap_read_object_property_ex(getThis(), "MSGV3", sizeof("MSGV3") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageVar3, 1, 0);
+}
+
+PHP_METHOD(SapException, getMessageVar4)
+{
+	zval *zMessageVar4 = sap_read_object_property_ex(getThis(), "MSGV4", sizeof("MSGV4") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageVar4, 1, 0);
+}
+
+PHP_METHOD(SapException, getMessageKey)
+{
+	zval *zMessageKey = sap_read_object_property_ex(getThis(), "KEY", sizeof("KEY") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zMessageKey, 1, 0);
+}
+
+PHP_METHOD(SapException, getNwSdkFunction)
+{
+	zval *zNwSdkFunction = sap_read_object_property_ex(getThis(), "nwsdkfunction", sizeof("nwsdkfunction") - 1, Z_OBJCE_P(getThis()));
+
+	RETURN_ZVAL(zNwSdkFunction, 1, 0);
+}
+
 PHP_METHOD(Sap, __construct)
 {
 	sap_object *intern;
@@ -2266,6 +2473,7 @@ PHP_METHOD(Sap, __construct)
 	zval *zlogonParameters = NULL;
 	HashTable *logonParameters = NULL;
 	int autoConnect = 1;
+	SAPRFC_ERROR_INFO error;
 
 	PHP_SAP_PARSE_PARAMS_BEGIN()
 		res = PHP_SAP_PARSE_PARAMS(ZEND_NUM_ARGS() TSRMLS_CC, "|ab", &zlogonParameters, &autoConnect);
@@ -2288,8 +2496,8 @@ PHP_METHOD(Sap, __construct)
 	intern->connection = sap_create_connection_resource(logonParameters);
 	intern->connection->refCount++;
 
-	if (NULL != zlogonParameters && autoConnect && SUCCESS != sap_connection_open(intern->connection, &sap_last_error)) {
-		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+	if (NULL != zlogonParameters && autoConnect && SUCCESS != sap_connection_open(intern->connection, &error)) {
+		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 		RETURN_FALSE;
 	}
 }
@@ -2323,6 +2531,7 @@ PHP_METHOD(Sap, call)
 	HashTable *imports = NULL;
 	php_sap_function *func;
 	int cresult;
+	SAPRFC_ERROR_INFO error;
 
 	PHP_SAP_PARSE_PARAMS_BEGIN()
 		res = PHP_SAP_PARSE_PARAMS(ZEND_NUM_ARGS() TSRMLS_CC, "s|a", &name, &namelen, &zimports);
@@ -2339,8 +2548,8 @@ PHP_METHOD(Sap, call)
 		RETURN_FALSE;
 	}
 
-	if (NULL == (func = sap_fetch_function(name, namelen, intern->connection, &sap_last_error TSRMLS_CC))) {
-		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+	if (NULL == (func = sap_fetch_function(name, namelen, intern->connection, &error TSRMLS_CC))) {
+		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 		RETURN_FALSE;
 	}
 
@@ -2350,12 +2559,12 @@ PHP_METHOD(Sap, call)
 
 	array_init(return_value);
 
-	cresult = sap_function_invoke(func, intern->connection, imports, Z_ARRVAL_P(return_value), &sap_last_error TSRMLS_CC);
+	cresult = sap_function_invoke(func, intern->connection, imports, Z_ARRVAL_P(return_value), &error TSRMLS_CC);
 
 	php_sap_function_ptr_dtor(func);
 
 	if (SUCCESS != cresult) {
-		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 		RETURN_FALSE;
 	}
 }
@@ -2371,6 +2580,7 @@ PHP_METHOD(Sap, fetchFunction)
 	sap_object *intern;
 	php_sap_function *func_descr;
 	sap_function *func;
+	SAPRFC_ERROR_INFO error;
 
 	PHP_SAP_PARSE_PARAMS_BEGIN()
 		res = PHP_SAP_PARSE_PARAMS(ZEND_NUM_ARGS() TSRMLS_CC, "z|Ca", &zfunction, &fce, &zargs);
@@ -2425,11 +2635,11 @@ PHP_METHOD(Sap, fetchFunction)
 	intern = sap_get_sap_object(getThis());
 
 	/* Get function description from SAP backend */
-	func_descr = sap_fetch_function(function_name, function_len, intern->connection, &sap_last_error TSRMLS_CC);
+	func_descr = sap_fetch_function(function_name, function_len, intern->connection, &error TSRMLS_CC);
 	efree(function_name);
 
 	if (NULL == func_descr) {
-		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 		RETURN_FALSE;
 	}
 
@@ -2490,6 +2700,7 @@ PHP_METHOD(SapFunction, getName)
 	RFC_ABAP_NAME funcNameU;
 	char *name;
 	int namelen;
+	SAPRFC_ERROR_INFO error;
 
 	intern = sap_get_function(getThis());
 
@@ -2501,14 +2712,14 @@ PHP_METHOD(SapFunction, getName)
 #endif
 	}
 
-	if (RFC_OK != RfcGetFunctionName(intern->function_descr->fdh, funcNameU, (RFC_ERROR_INFO*)&sap_last_error)) {
+	if (RFC_OK != RfcGetFunctionName(intern->function_descr->fdh, funcNameU, (RFC_ERROR_INFO*)&error)) {
 		SAP_ERROR_SET_RFCFUNCTION(&sap_last_error, "RfcGetFunctionName", sizeof("RfcGetFunctionName") - 1);
-		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 		RETURN_FALSE;
 	}
 
-	if (SUCCESS != sapuc_to_utf8(funcNameU, &name, &namelen, &sap_last_error)) {
-		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+	if (SUCCESS != sapuc_to_utf8(funcNameU, &name, &namelen, &error)) {
+		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 		RETURN_FALSE;
 	}
 
@@ -2557,6 +2768,7 @@ PHP_METHOD(SapFunction, __invoke)
 	zval *args = NULL;
 	HashTable *imports = NULL;
 	sap_function *intern;
+	SAPRFC_ERROR_INFO error;
 	
 	PHP_SAP_PARSE_PARAMS_BEGIN()
 		res = PHP_SAP_PARSE_PARAMS(ZEND_NUM_ARGS() TSRMLS_CC, "|a", &args);
@@ -2580,12 +2792,11 @@ PHP_METHOD(SapFunction, __invoke)
 
 	array_init(return_value);
 
-	if (SUCCESS != sap_function_invoke(intern->function_descr, intern->connection, imports, Z_ARRVAL_P(return_value), &sap_last_error TSRMLS_CC)) {
-		SAPRFC_ERROR_INFO *err = &sap_last_error;
-
+	if (SUCCESS != sap_function_invoke(intern->function_descr, intern->connection, imports, Z_ARRVAL_P(return_value), &error TSRMLS_CC))
+	{
 		zval_dtor(return_value);
 
-		SAP_THROW_SAPRFC_ERROR_EXCEPTION(err);
+		SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 		RETURN_FALSE;
 	}
 }
@@ -2622,6 +2833,7 @@ PHP_METHOD(SapFunction, getTypeName)
 	int pnamelen;
 	sap_function *intern;
 	SAPRFC_PARAMETER_DESC *sp;
+	SAPRFC_ERROR_INFO error;
 
 	PHP_SAP_PARSE_PARAMS_BEGIN()
 		res = PHP_SAP_PARSE_PARAMS(ZEND_NUM_ARGS() TSRMLS_CC, "s", &pname, &pnamelen);
@@ -2645,16 +2857,16 @@ PHP_METHOD(SapFunction, getTypeName)
 		char *typeName;
 		int typeNameLen;
 
-		memset(&sap_last_error, 0, sizeof(SAPRFC_ERROR_INFO));
+		memset(&error, 0, sizeof(SAPRFC_ERROR_INFO));
 
-		if (RFC_OK != RfcGetTypeName(sp->param.typeDescHandle, typeNameU, (RFC_ERROR_INFO*)&sap_last_error)) {
-			SAP_ERROR_SET_RFCFUNCTION(&sap_last_error, "RfcGetTypeName", sizeof("RfcGetTypeName") - 1);
-			SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		if (RFC_OK != RfcGetTypeName(sp->param.typeDescHandle, typeNameU, (RFC_ERROR_INFO*)&error)) {
+			SAP_ERROR_SET_RFCFUNCTION(&error, "RfcGetTypeName", sizeof("RfcGetTypeName") - 1);
+			SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 			RETURN_FALSE;
 		}
 
-		if (SUCCESS != sapuc_to_utf8(typeNameU, &typeName, &typeNameLen, &sap_last_error)) {
-			SAP_THROW_SAPRFC_ERROR_EXCEPTION(&sap_last_error);
+		if (SUCCESS != sapuc_to_utf8(typeNameU, &typeName, &typeNameLen, &error)) {
+			SAP_THROW_SAPRFC_ERROR_EXCEPTION(&error);
 			RETURN_FALSE;
 		}
 
@@ -2938,72 +3150,81 @@ PHP_METHOD(SapRfcReadTable, select)
 					zval *wa;
 					zval *zfieldrow;
 
-					if ((wa = sap_hash_find_zval(Z_ARRVAL_P(zdatarow), "WA", sizeof("WA") - 1)) && Z_TYPE_P(wa) == IS_STRING
-					&&	(zresultrow = sap_hash_next_index_insert_new_zval(Z_ARRVAL_P(return_value))))
+					wa = sap_hash_find_zval(Z_ARRVAL_P(zdatarow), "WA", sizeof("WA") - 1);
+
+					/* Fix bug: wa might be NULL also */
+					if (NULL == wa || ( Z_TYPE_P(wa) != IS_STRING && Z_TYPE_P(wa) != IS_NULL) ) {
+						continue;
+					}
+
+					zresultrow = sap_hash_next_index_insert_new_zval(Z_ARRVAL_P(return_value));
+
+					if (NULL == zresultrow) {
+						continue;
+					}
+
+					array_init_size(zresultrow, zend_hash_num_elements(Z_ARRVAL_P(zresultfields)));
+
+					SAP_HASH_FOREACH_VAL(Z_ARRVAL_P(zresultfields), zfieldrow)
 					{
-						array_init_size(zresultrow, zend_hash_num_elements(Z_ARRVAL_P(zresultfields)));
+						zval *zfieldname, *zfieldoffset, *zfieldlength, *zfieldtype;
+						zval zlongoffset, zlonglength;
 
-						SAP_HASH_FOREACH_VAL(Z_ARRVAL_P(zresultfields), zfieldrow)
+						if (Z_TYPE_P(zfieldrow) != IS_ARRAY) {
+							continue; /* This should not happen */
+						}
+
+						if ((zfieldname = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "FIELDNAME", sizeof("FIELDNAME") - 1)) && Z_TYPE_P(zfieldname) == IS_STRING
+						&&	(zfieldoffset = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "OFFSET", sizeof("OFFSET") - 1))
+						&&	(zfieldlength = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "LENGTH", sizeof("LENGTH") - 1))
+						&&	(zfieldtype = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "TYPE", sizeof("TYPE") - 1)) && Z_TYPE_P(zfieldtype) == IS_STRING)
 						{
-							zval *zfieldname, *zfieldoffset, *zfieldlength, *zfieldtype;
-							zval zlongoffset, zlonglength;
+							zval *zfieldvalue;
+							zval *zfieldalias;
 
-							if (Z_TYPE_P(zfieldrow) != IS_ARRAY) {
-								continue; /* This should not happen */
+							ZVAL_ZVAL(&zlongoffset, zfieldoffset, 1, 0);
+							convert_to_long(&zlongoffset);
+
+							ZVAL_ZVAL(&zlonglength, zfieldlength, 1, 0);
+							convert_to_long(&zlonglength);
+
+							if (Z_TYPE_P(zfields) == IS_ARRAY && (zfieldalias = sap_hash_find_zval(Z_ARRVAL_P(zfields), Z_STRVAL_P(zfieldname), Z_STRLEN_P(zfieldname)))) {
+								/* is field alias */
+								zfieldname = zfieldalias;
 							}
 
-							if ((zfieldname = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "FIELDNAME", sizeof("FIELDNAME") - 1)) && Z_TYPE_P(zfieldname) == IS_STRING
-							&&	(zfieldoffset = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "OFFSET", sizeof("OFFSET") - 1))
-							&&	(zfieldlength = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "LENGTH", sizeof("LENGTH") - 1))
-							&&	(zfieldtype = sap_hash_find_zval(Z_ARRVAL_P(zfieldrow), "TYPE", sizeof("TYPE") - 1)) && Z_TYPE_P(zfieldtype) == IS_STRING)
+							if (zfieldvalue = sap_hash_add_new_zval(Z_ARRVAL_P(zresultrow), Z_STRVAL_P(zfieldname), Z_STRLEN_P(zfieldname)))
 							{
-								zval *zfieldvalue;
-								zval *zfieldalias;
+								char *substr;
+								int substrlen;
 
-								ZVAL_ZVAL(&zlongoffset, zfieldoffset, 1, 0);
-								convert_to_long(&zlongoffset);
-
-								ZVAL_ZVAL(&zlonglength, zfieldlength, 1, 0);
-								convert_to_long(&zlonglength);
-
-								if (Z_TYPE_P(zfields) == IS_ARRAY && (zfieldalias = sap_hash_find_zval(Z_ARRVAL_P(zfields), Z_STRVAL_P(zfieldname), Z_STRLEN_P(zfieldname)))) {
-									/* is field alias */
-									zfieldname = zfieldalias;
-								}
-
-								if (zfieldvalue = sap_hash_add_new_zval(Z_ARRVAL_P(zresultrow), Z_STRVAL_P(zfieldname), Z_STRLEN_P(zfieldname)))
+								if (Z_TYPE_P(wa) == IS_STRING && SUCCESS == utf8_substr(Z_STRVAL_P(wa), Z_STRLEN_P(wa), Z_LVAL(zlongoffset), Z_LVAL(zlonglength), &substr, &substrlen))
 								{
-									char *substr;
-									int substrlen;
-
-									if (SUCCESS == utf8_substr(Z_STRVAL_P(wa), Z_STRLEN_P(wa), Z_LVAL(zlongoffset), Z_LVAL(zlonglength), &substr, &substrlen))
+									if (PHP_SAP_GLOBALS(rtrim_export_strings))
 									{
-										if (PHP_SAP_GLOBALS(rtrim_export_strings))
-										{
-											char *substrtrimmed;
-											int substrtrimmedlen;
+										char *substrtrimmed;
+										int substrtrimmedlen;
 
-											utf8_trim(substr, substrlen, &substrtrimmed, &substrtrimmedlen, TRIM_RIGHT);
+										utf8_trim(substr, substrlen, &substrtrimmed, &substrtrimmedlen, TRIM_RIGHT);
 
-											efree(substr);
-											substr = substrtrimmed;
-											substrlen = substrtrimmedlen;
-										}
-#if PHP_VERSION_ID >= 70000
-										ZVAL_STRINGL(zfieldvalue, substr, substrlen);
 										efree(substr);
+										substr = substrtrimmed;
+										substrlen = substrtrimmedlen;
+									}
+#if PHP_VERSION_ID >= 70000
+									ZVAL_STRINGL(zfieldvalue, substr, substrlen);
+									efree(substr);
 #else
-										ZVAL_STRINGL(zfieldvalue, substr, substrlen, 0);
+									ZVAL_STRINGL(zfieldvalue, substr, substrlen, 0);
 #endif
-									}
-									else {
-										ZVAL_NULL(zfieldvalue);
-									}
+								}
+								else {
+									ZVAL_NULL(zfieldvalue);
 								}
 							}
 						}
-						SAP_HASH_FOREACH_END();
 					}
+					SAP_HASH_FOREACH_END();
 				}
 				SAP_HASH_FOREACH_END();
 			}
@@ -3017,10 +3238,16 @@ PHP_METHOD(SapRfcReadTable, select)
 
 PHP_MINIT_FUNCTION(sap)
 {
-	zend_class_entry exception_ce, sap_ce, function_ce, rfcreadtable_ce;
-	
+	zend_class_entry ce;
+
 	/* instatiate last error to NULL*/
 	memset(&sap_last_error, 0, sizeof(SAPRFC_ERROR_INFO));
+
+#if PHP_SAP_WITH_PTHREADS
+	/* initialize conversion mutexes */
+	rfc_utf8_to_sapuc_mutex = PTHREAD_MUTEX_INITIALIZER;
+	rfc_sapuc_to_utf8_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 	/* Register resources */
 	le_php_sap_connection = zend_register_list_destructors_ex(php_sap_connection_rsrc_dtor, NULL, PHP_SAP_CONNECTION_RES_NAME, module_number);
@@ -3029,25 +3256,31 @@ PHP_MINIT_FUNCTION(sap)
 
 	REGISTER_INI_ENTRIES();
 
-	INIT_CLASS_ENTRY(exception_ce, "SapException", sap_exception_fe);
+	/* Define Sap classes */
+
+	//SapException
+	INIT_CLASS_ENTRY(ce, "SapException", sap_exception_fe);
 #if PHP_VERSION_ID < 70000
-	sap_ce_SapException = zend_register_internal_class_ex(&exception_ce, zend_default_exception, "Exception" TSRMLS_CC);
+	sap_ce_SapException = zend_register_internal_class_ex(&ce, zend_default_exception, "Exception" TSRMLS_CC);
 #else
-	sap_ce_SapException = zend_register_internal_class_ex(&exception_ce, zend_default_exception);
+	sap_ce_SapException = zend_register_internal_class_ex(&ce, zend_default_exception);
 #endif
 	
-	zend_declare_property_string(sap_ce_SapException, "rfcFunction", sizeof("rfcFunction") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "msgClass", sizeof("msgClass") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "msgNumber", sizeof("msgNumber") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "msgType", sizeof("msgType") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "msgVar1", sizeof("msgVar1") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "msgVar2", sizeof("msgVar2") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "msgVar3", sizeof("msgVar3") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "msgVar4", sizeof("msgVar4") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_string(sap_ce_SapException, "key", sizeof("key") - 1, "", ZEND_ACC_PUBLIC TSRMLS_CC);
-	
-	INIT_CLASS_ENTRY(sap_ce, "Sap", sap_fe_Sap);
-	sap_ce_Sap = zend_register_internal_class(&sap_ce TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "MSGTY",			sizeof("MSGTY") - 1,		"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "MSGID",			sizeof("MSGID") - 1,		"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "MSGNO",			sizeof("MSGNO") - 1,		"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "MSGV1",			sizeof("MSGV1") - 1,		"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "MSGV2",			sizeof("MSGV2") - 1,		"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "MSGV3",			sizeof("MSGV3") - 1,		"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "MSGV4",			sizeof("MSGV4") - 1,		"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "KEY",			sizeof("KEY") - 1,			"", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(sap_ce_SapException, "nwsdkfunction",	sizeof("nwsdkfunction") - 1,"", ZEND_ACC_PROTECTED TSRMLS_CC);
+
+	//Sap
+	INIT_CLASS_ENTRY(ce, "Sap", sap_fe_Sap);
+	sap_ce_Sap = zend_register_internal_class(&ce TSRMLS_CC);
+
+	sap_ce_Sap->create_object = sap_object_create_object;
 
 	memcpy(&sap_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 	sap_object_handlers.clone_obj = sap_object_clone_object;
@@ -3056,26 +3289,28 @@ PHP_MINIT_FUNCTION(sap)
 	sap_object_handlers.free_obj = sap_object_free_object_storage;
 	sap_object_handlers.offset = XtOffsetOf(sap_object, std);
 #endif
-
-	sap_ce_Sap->create_object = sap_object_create_object;
-
-	INIT_CLASS_ENTRY(function_ce, "SapFunction", sap_fe_SapFunction);
-	sap_ce_SapFunction = zend_register_internal_class(&function_ce TSRMLS_CC);
 	
+	//SapFunction
+	INIT_CLASS_ENTRY(ce, "SapFunction", sap_fe_SapFunction);
+	sap_ce_SapFunction = zend_register_internal_class(&ce TSRMLS_CC);
+
+	sap_ce_SapFunction->create_object = sap_function_create_object;
+
 	memcpy(&sap_function_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 	sap_function_handlers.clone_obj = sap_function_clone_object;
+	sap_function_handlers.cast_object = sap_function_cast_object;
+
 #if PHP_VERSION_ID >= 70000
 	sap_function_handlers.free_obj = sap_function_free_object_storage;
 	sap_function_handlers.offset = XtOffsetOf(sap_function, std);
 #endif
 	
-	sap_ce_SapFunction->create_object = sap_function_create_object;
-
-	INIT_CLASS_ENTRY(rfcreadtable_ce, "SapRfcReadTable", sap_fe_SapRfcReadTable);
+	//SapRfcReadTable
+	INIT_CLASS_ENTRY(ce, "SapRfcReadTable", sap_fe_SapRfcReadTable);
 #if PHP_VERSION_ID < 70000
-	sap_ce_SapRfcReadTable = zend_register_internal_class_ex(&rfcreadtable_ce, sap_ce_SapFunction, "SapFunction" TSRMLS_CC);
+	sap_ce_SapRfcReadTable = zend_register_internal_class_ex(&ce, sap_ce_SapFunction, "SapFunction" TSRMLS_CC);
 #else
-	sap_ce_SapRfcReadTable = zend_register_internal_class_ex(&rfcreadtable_ce, sap_ce_SapFunction);
+	sap_ce_SapRfcReadTable = zend_register_internal_class_ex(&ce, sap_ce_SapFunction);
 #endif
 	
 	return SUCCESS;
@@ -3089,21 +3324,23 @@ PHP_MSHUTDOWN_FUNCTION(sap)
 PHP_MINFO_FUNCTION(sap)
 {
 	unsigned int major, minor, patchlevel;
-	const SAP_UC *sdkversionU = RfcGetVersion(&major, &minor, &patchlevel);
-	char *nwsdkversion = "";
+	const SAP_UC *sdkversionU;
+	char *nwsdkversion;
 	int nwsdkversionlen, res;
-
-	res = sapuc_to_utf8((SAP_UC*)sdkversionU, &nwsdkversion, &nwsdkversionlen, &sap_last_error);
 
 	php_info_print_table_start();
 	php_info_print_table_header(2, "SAP Remote Functions call support", "enabled");
 	php_info_print_table_row(2, "Version", PHP_SAP_VERSION);
-	php_info_print_table_row(2, "Nw Rfc Sdk Version", nwsdkversion);
-	php_info_print_table_end();
+
+	sdkversionU = RfcGetVersion(&major, &minor, &patchlevel);
+	res = sapuc_to_utf8((SAP_UC*)sdkversionU, &nwsdkversion, &nwsdkversionlen, &sap_last_error);
 
 	if (SUCCESS == res) {
+		php_info_print_table_row(2, "Nw Rfc Sdk Version", nwsdkversion);
 		efree(nwsdkversion);
 	}
+
+	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();
 }
