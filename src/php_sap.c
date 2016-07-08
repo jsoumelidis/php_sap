@@ -1,6 +1,6 @@
 #include "php_sap.h"
 
-#if PHP_SAP_WITH_PTHREADS
+#ifdef PHP_SAP_WITH_PTHREADS
 #define PTW32_INCLUDE_WINDOWS_H
 #ifdef TIME_H
 #define HAVE_STRUCT_TIMESPEC
@@ -25,7 +25,6 @@
 
 #ifdef HAVE_SPL
 	#include "ext\spl\spl_exceptions.h"
-	#include "ext\spl\spl_iterators.h"
 
 	#define zend_invalid_args_exception spl_ce_InvalidArgumentException
 #else
@@ -816,7 +815,7 @@ static void sap_rfc_error_to_exception(SAPRFC_ERROR_INFO *err, zval *exception T
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV4, &msgv4, &msgv4Len, &e)) {
-		zend_update_property_stringl(sap_ce_SapException, exception, "MSGV4", sizeof("MSGV4") - 1, msgv4, msgv1Len TSRMLS_CC);
+		zend_update_property_stringl(sap_ce_SapException, exception, "MSGV4", sizeof("MSGV4") - 1, msgv4, msgv4Len TSRMLS_CC);
 	}
 
 	if (SUCCESS == sapuc_to_utf8(err->err.key, &key, &keyLen, &e)) {
