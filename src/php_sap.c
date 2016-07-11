@@ -347,6 +347,7 @@ SAP_PHP_API zend_class_entry * php_sap_get_exception_ce(void)
 /* {{{ */
 
 /* SapException */
+PHP_METHOD(SapException, getMessageKey);
 PHP_METHOD(SapException, getMessageType);
 PHP_METHOD(SapException, getMessageId);
 PHP_METHOD(SapException, getMessageNumber);
@@ -357,6 +358,7 @@ PHP_METHOD(SapException, getMessageVar4);
 PHP_METHOD(SapException, getNwSdkFunction);
 
 const zend_function_entry sap_exception_fe[] = {
+	PHP_ME(SapException,	getMessageKey,		NULL,	ZEND_ACC_PUBLIC)
 	PHP_ME(SapException,	getMessageType,		NULL,	ZEND_ACC_PUBLIC)
 	PHP_ME(SapException,	getMessageId,		NULL,	ZEND_ACC_PUBLIC)
 	PHP_ME(SapException,	getMessageNumber,	NULL,	ZEND_ACC_PUBLIC)
