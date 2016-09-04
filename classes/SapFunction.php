@@ -16,7 +16,9 @@ class SapFunction
 	 * $exports = $sapFunction->__invoke($imports) is the same as $exports = $sapFunction($imports).
 	 *
 	 * @param array $args import parameters
+	 *
 	 * @return array export parameters
+	 *
 	 * @throws SapException
 	 */
 	public function __invoke(array $imports = []) : array {}
@@ -32,6 +34,7 @@ class SapFunction
 	 *
 	 * @param string $parameter
 	 * @param bool $active
+	 *
 	 * @return bool
 	 */
 	public function setActive(string $parameter, bool $active) : bool {}
@@ -48,6 +51,7 @@ class SapFunction
 	 * Returns false if parameter not found or is not a TABLE|STRUCTURE
 	 *
 	 * @param string $parameter
+	 *
 	 * @return string|false
 	 */
 	public function getTypeName(string $parameter) {}

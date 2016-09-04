@@ -1,6 +1,4 @@
 <?php
-$sapConfig = include __DIR__ . DIRECTORY_SEPARATOR . 'sap_config.php';
-
 class SapRfcUserLogin extends SapFunction
 {
 	const SUCCESS = 0;
@@ -18,7 +16,9 @@ class SapRfcUserLogin extends SapFunction
 		}
 		catch (SapException $se)
 		{
-			switch ($se->key)
+			$this->reason = $key = $se->getMessageKey();
+			
+			switch ( $key )
 			{
 				/* Possible exception keys */
 				case 'USER_LOCKED':
@@ -29,7 +29,6 @@ class SapRfcUserLogin extends SapFunction
 				case 'PASSWORD_ATTEMPTS_LIMITED':
 				case 'INTERNAL_ERROR':
 				default:
-					$this->reason = $se->key;
 					return self::FAILURE;
 			}
 		}
@@ -42,6 +41,8 @@ class SapRfcUserLogin extends SapFunction
 		return $this->reason;
 	}
 }
+
+$sapConfig = include __DIR__ . DIRECTORY_SEPARATOR . 'sap_config.php';
 
 if (isset($argc, $argv) && $argc > 2) {
 	/* get username/password from command line arguments */
@@ -61,7 +62,7 @@ try
 	$loginCheckFunction = $sap->fetchFunction('SUSR_LOGIN_CHECK_RFC', 'SapRfcUserLogin');
 }
 catch (SapException $se) {
-	echo 'System not available (', $se->key, ')', PHP_EOL, $se->getMessage(), PHP_EOL;
+	echo 'System not available (', $se->getMessageKey(), ')', PHP_EOL, $se->getMessage(), PHP_EOL;
 	exit(1);
 }
 

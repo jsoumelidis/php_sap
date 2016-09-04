@@ -64,7 +64,7 @@ try
 }
 catch (SapException $se)
 {
-	echo 'SapException ::', $se->key, ':: ', $se->getMessage(), PHP_EOL;
+	echo 'SapException ::', $se->getMessageKey(), ':: ', $se->getMessage(), PHP_EOL;
 	exit(1);
 }
 

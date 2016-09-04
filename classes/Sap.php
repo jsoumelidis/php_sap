@@ -10,9 +10,9 @@ class Sap
 	 *
 	 * All values should be strings, otherwise they will be converted to strings
 	 *
-	 * @param array $options The R/3 logon parameters
+	 * @param array $logonParameters The R/3 logon parameters
 	 */
-	public function __construct(array $logonParameters = []) {}
+	public function __construct(array $logonParameters) {}
 
 	/**
 	 * Fetches a function module's description from the R/3 backend
@@ -27,26 +27,31 @@ class Sap
 	 * @param string|SapFunction $function
 	 * @param string $class Class derived from SapFunction
 	 * @param array $ctor_args Constructor arguments, used in conjuction with $class argument
+	 *
 	 * @return SapFunction
+	 *
 	 * @throws SapException function not found or other error occurs
 	 */
-	public function fetchFunction($function, $class = null, array $ctor_args = array()) : SapFunction {}
+	public function fetchFunction($function, $class = null, array $ctor_args = null) : SapFunction {}
 
 	/**
 	 * Instant call of a Remote Function Module.
 	 *
 	 * @param string $function Function's name
 	 * @param array $args import/changing/tables parameters
+	 *
 	 * @return array Function's export/changing/tables parameters
+	 
 	 * @throws SapException function not found or other error occurs
 	 */
-	public function call($function, array $args) : array {}
+	public function call(string $function, array $args) : array {}
 	
 	/**
 	 * Sets the default SapFunction class for this Sap Object when fetching remote functions.
 	 *
 	 * @param string $class A class derived from SapFunction
-	 * @return Sap
+	 *
+	 * @return void
 	 */
 	public function setFunctionClass(string $class) : Sap {}
 }

@@ -24,7 +24,10 @@ class SapRfcReadTable extends SapFunction
 	 * @param array $options
 	 * @param int $limit
 	 * @param int $offset
+	 *
 	 * @return array
+	 *
+	 * @throws SapException
 	 */
 	public function select($fields, string $table, array $options = [], int $limit = 0, int $offset = 0) : array {}
 }
