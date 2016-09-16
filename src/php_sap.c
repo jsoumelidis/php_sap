@@ -794,7 +794,16 @@ try_again:
 			goto try_again;
 		}
 		case RFC_OK: {
+
+			if (NULL == utf8) {
+				/**
+				* utf8 will be NULL if str == "", so we have to allocate an empty string
+				*/
+				utf8 = estrndup("", 0);
+			}
+
 			*strU8 = utf8;
+
 			return SUCCESS;
 		}
 		default: {
@@ -1034,15 +1043,13 @@ static HashTable * sap_function_description_to_array(RFC_FUNCTION_DESC_HANDLE fd
 	ALLOC_HASHTABLE(retval);
 	zend_hash_init(retval, paramCount, NULL, SAPRFC_PARAMETER_PTR_DTOR, 0);
 
-	/**
-	 * Allocate memory for parameters
-	 */
-	sp = (SAPRFC_PARAMETER_DESC*)emalloc(paramCount * sizeof(SAPRFC_PARAMETER_DESC));
-	memset(sp, 0, paramCount * sizeof(SAPRFC_PARAMETER_DESC));
-
-	for (i = 0; i < paramCount; i++, sp++)
+	for (i = 0; i < paramCount; i++)
 	{
 		char *paramName; int paramNameLen;
+
+		/* Allocate memory for current parameter */
+		sp = emalloc(sizeof(SAPRFC_PARAMETER_DESC));
+		memset(sp, 0, sizeof(SAPRFC_PARAMETER_DESC));
 
 		if (RFC_OK != RfcGetParameterDescByIndex(fdh, i, &sp->param, (RFC_ERROR_INFO*)err)) {
 			SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetParameterDescByIndex", NULL);
@@ -2235,12 +2242,9 @@ static int sap_function_invoke(php_sap_function *function, php_sap_connection *c
 			continue;
 		}
 
-#if PHP_VERSION_ID < 70000
-		MAKE_STD_ZVAL(ev);
-#else
-		ev = &EG(uninitialized_zval);
-#endif
-		if (!(ev = my_zend_hash_add_zval(exports, pname, pnamelen, ev))) { /* out of memory, full hashtable etc */
+		ev = my_zend_hash_add_new_zval(exports, pname, pnamelen);
+
+		if (NULL == ev) { /* out of memory, full hashtable etc */
 			break;
 		}
 
