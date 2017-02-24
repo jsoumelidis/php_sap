@@ -857,7 +857,7 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
 
 	if (!fn_proxy && SUCCESS != zend_hash_find(&scope_ce->function_table, Z_STRVAL(function_name), Z_STRLEN(function_name) + 1, (void**)&fn_proxy)) {
 #endif
-		zend_error_noreturn(E_CORE_ERROR, "Couldn't find implementation for method %s::%s", sap_get_str_val(scope_ce->name), func);
+		zend_error(E_CORE_ERROR, "Couldn't find implementation for method %s::%s", sap_get_str_val(scope_ce->name), func);
 	}
 
 	/* Set function call arguments */
@@ -2675,7 +2675,7 @@ PHP_METHOD(Sap, fetchFunction)
 				}
 
 				if (Z_TYPE_P(retval_ptr) != IS_STRING) {
-					zend_error_noreturn(E_ERROR, "Method %s::getName() should return a string (%s returned)", sap_get_str_val(fce->name), zend_get_type_by_const(Z_TYPE_P(retval_ptr)));
+					zend_error(E_ERROR, "Method %s::getName() should return a string (%s returned)", sap_get_str_val(fce->name), zend_get_type_by_const(Z_TYPE_P(retval_ptr)));
 					return;
 				}
 
