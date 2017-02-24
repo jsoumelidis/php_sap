@@ -11,13 +11,13 @@
 #endif //PHP_SAP_WITH_PTHREADS
 
 #include "php_ini.h"
-#include "ext\standard\info.h"
+#include "ext/standard/info.h"
 
 #include "zend_objects.h"
 #include "zend_exceptions.h"
 
 #ifdef HAVE_SPL
-	#include "ext\spl\spl_exceptions.h"
+	#include "ext/spl/spl_exceptions.h"
 
 	#define zend_invalid_args_exception spl_ce_InvalidArgumentException
 #else
@@ -25,7 +25,7 @@
 #endif
 
 #ifdef HAVE_DATE
-	#include "ext\date\php_date.h"
+	#include "ext/date/php_date.h"
 #endif
 
 #define SAP_ME_ARGS(classname, method) arginfo_##classname##_##method
