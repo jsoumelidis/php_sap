@@ -1,0 +1,16 @@
+ARG_WITH("sap", "for sap support", "no");
+
+if (PHP_SAP != "no") {
+
+	if (CHECK_HEADER_ADD_INCLUDE("sapnwrfc.h", "CFLAGS_SAP") &&
+		CHECK_LIB("sapnwrfc.lib", "sap", PHP_SAP) &&
+		CHECK_LIB("libsapucum.lib", "sap", PHP_SAP)) {
+		 
+		  EXTENSION("sap", "src/php_sap.c");
+		  
+		  AC_DEFINE('HAVE_SAP', 1, 'SAP remote function calls support enabled');
+	}
+	else {
+		WARNING( "SAP extension not enabled; libraries not found" );
+	}
+}

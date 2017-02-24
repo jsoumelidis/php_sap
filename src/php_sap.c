@@ -833,8 +833,10 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
 	zval function_name;
 	
 	/* Setup function call info */
+#if PHP_VERSION_ID < 70100
 	fci.symbol_table = NULL;
 	fci.function_table = &scope_ce->function_table;
+#endif
 	fci.no_separation = 1;
 	fci.param_count = 0;
 	fci.params = NULL;
@@ -846,18 +848,14 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
 	ZVAL_STRING(&function_name, func);
 	fci.function_name = function_name;
 
-	if (!fn_proxy && !(fn_proxy = zend_hash_find_ptr(fci.function_table, Z_STR(fci.function_name)))) {
+	if (!fn_proxy && !(fn_proxy = zend_hash_find_ptr(&scope_ce->function_table, Z_STR(fci.function_name)))) {
 #else
 	fci.retval_ptr_ptr = rv_ptr_ptr;
 
 	ZVAL_STRING(&function_name, func, 1);
 	fci.function_name = &function_name;
 
-	/*
-	 * For some reason, pointers are stored differently in zend_class_entry->function_table so the last argument is not void*** but void**
-	 * Got that from zend std object handlers -> get_closure
-	 */
-	if (!fn_proxy && SUCCESS != zend_hash_find(fci.function_table, Z_STRVAL(function_name), Z_STRLEN(function_name) + 1, (void**)&fn_proxy)) {
+	if (!fn_proxy && SUCCESS != zend_hash_find(&scope_ce->function_table, Z_STRVAL(function_name), Z_STRLEN(function_name) + 1, (void**)&fn_proxy)) {
 #endif
 		zend_error_noreturn(E_CORE_ERROR, "Couldn't find implementation for method %s::%s", sap_get_str_val(scope_ce->name), func);
 	}
@@ -878,7 +876,7 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
 
 	/* Do call */
 	retval = zend_call_function(&fci, &fcc TSRMLS_CC);
-
+	
 	zval_dtor(&function_name);
 
 	return retval;
@@ -1998,6 +1996,37 @@ static int sap_export_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 			}
 
 			
+
+			break;
+		}
+		case RFCTYPE_DATE:
+		{
+			RFC_DATE dt;
+			char *str;
+			int len;
+
+			memset(dt, 0, sizeof(RFC_DATE));
+
+			if (RFC_OK != RfcGetDate(dh, name, dt, (RFC_ERROR_INFO*)err)) {
+				SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetDate", FAILURE);
+			}
+
+			if (SUCCESS != sapuc_to_utf8_l(dt, nucLength, &str, &len, err)) {
+				return FAILURE;
+			}
+
+			if (len > 0) {
+#if PHP_VERSION_ID < 70000
+				ZVAL_STRINGL(rv, str, len, 0);
+#else
+				ZVAL_STRINGL(rv, str, len);
+				efree(str);
+#endif
+			}
+			else {
+				efree(str);
+				ZVAL_NULL(rv);
+			}
 
 			break;
 		}
