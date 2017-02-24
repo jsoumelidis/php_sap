@@ -137,13 +137,12 @@
 #define MY_ZEND_HASH_FOREACH(ht) do {						\
 	HashTable *__ht = (ht);									\
 	HashPosition __pos;										\
-	zval *_z;												\
 	for (zend_hash_internal_pointer_reset_ex(__ht, &__pos);	\
-		 _z = zend_hash_get_current_data_ex(__ht, &__pos);	\
+		 __pos != HT_INVALID_IDX;							\
 		 zend_hash_move_forward_ex(__ht, &__pos))			\
 	{														\
-		uint32_t _idx = __pos;								\
-		Bucket *_p = __ht->arData + _idx;
+		Bucket *_p = __ht->arData + __pos;					\
+		zval *_z = &_p->val;
 
 #define MY_ZEND_HASH_FOREACH_VAL(ht, _zval) MY_ZEND_HASH_FOREACH(ht) _zval = _z;
 #define MY_ZEND_HASH_FOREACH_KEY_VAL(ht, _h, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _h = _p->h; _key = _p->key ? _p->key->val : NULL; _keylen = _p->key ? _p->key->len : 0;
@@ -280,7 +279,7 @@ zend_module_entry sap_module_entry = {
 	STANDARD_MODULE_PROPERTIES
 };
 
-#ifdef COMPILE_DL_PHP_SAP
+#ifdef COMPILE_DL_SAP
 ZEND_GET_MODULE(sap)
 #endif
 
@@ -1088,7 +1087,7 @@ static php_sap_connection * sap_create_connection_resource(HashTable *lparams)
 
 		MY_ZEND_HASH_FOREACH_STR_KEY_VAL(lparams, lparam, lparamlen, zlpvalue)
 		{
-			zval *pcopy;
+			zval *pcopy = NULL;
 			zval *z;
 #if PHP_VERSION_ID >= 70000
 			zval zcopy;
