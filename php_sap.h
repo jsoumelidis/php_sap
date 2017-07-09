@@ -1,23 +1,29 @@
 #ifndef PHP_SAP_H
-#define PHP_SAP_H
+#	define PHP_SAP_H
 
-#include "php.h"
-#include "sapnwrfc.h"
+#	include "php.h"
+#	include "sapnwrfc.h"
 
-#if ZTS
-#include "TSRM.h"
-#endif
+#	ifdef ZTS
+#		include "TSRM.h"
+#		define PHP_SAP_GLOBALS(v) TSRMG(sap_globals_id, zend_sap_globals*, v)
+#	else
+#		define PHP_SAP_GLOBALS(v) (sap_globals.v)
+#	endif
 
-#define PHP_SAP_DEBUG 0
-#define PHP_SAP_VERSION "0.01"
+#	ifndef PHP_SAP_DEBUG
+#		define PHP_SAP_DEBUG 0
+#	endif
 
-#define PHP_SAP_CONNECTION_RES_NAME "SAP R/3 Connection"
+#	define PHP_SAP_VERSION "0.01"
 
-#ifdef PHP_WIN32
-#define SAP_PHP_API __declspec(dllexport)
-#else
-#define SAP_PHP_API
-#endif
+#	define PHP_SAP_CONNECTION_RES_NAME "SAP R/3 Connection"
+
+#	ifdef PHP_WIN32
+#		define SAP_PHP_API __declspec(dllexport)
+#	else
+#		define SAP_PHP_API
+#	endif
 
 extern zend_module_entry sap_module_entry;
 
@@ -44,7 +50,6 @@ SAP_PHP_API zend_class_entry * php_sap_get_exception_ce(void);
 
 PHP_MINIT_FUNCTION(sap);
 PHP_MSHUTDOWN_FUNCTION(sap);
-
 PHP_MINFO_FUNCTION(sap);
 
 #endif
