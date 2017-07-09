@@ -1,13 +1,11 @@
 #include "php_sap.h"
 
 #ifdef PHP_SAP_WITH_PTHREADS
-#define PTW32_INCLUDE_WINDOWS_H
-#ifdef TIME_H
-#define HAVE_STRUCT_TIMESPEC
-#endif //TIME_H
-
-#include "pthread.h"
-
+#	define PTW32_INCLUDE_WINDOWS_H
+#	ifdef TIME_H
+#		define HAVE_STRUCT_TIMESPEC
+#	endif //TIME_H
+#	include "pthread.h"
 #endif //PHP_SAP_WITH_PTHREADS
 
 #include "php_ini.h"
@@ -17,15 +15,14 @@
 #include "zend_exceptions.h"
 
 #ifdef HAVE_SPL
-	#include "ext/spl/spl_exceptions.h"
-
-	#define zend_invalid_args_exception spl_ce_InvalidArgumentException
+#	include "ext/spl/spl_exceptions.h"
+#	define zend_invalid_args_exception spl_ce_InvalidArgumentException
 #else
-	#define zend_invalid_args_exception zend_default_exception
+#	define zend_invalid_args_exception zend_default_exception
 #endif
 
 #ifdef HAVE_DATE
-	#include "ext/date/php_date.h"
+#	include "ext/date/php_date.h"
 #endif
 
 #define SAP_ME_ARGS(classname, method) arginfo_##classname##_##method
@@ -40,126 +37,126 @@
 	memset(__err->nwsdkfunction + __funclen, 0, 1);				\
 } while (0);
 
-#define SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, _retval) SAP_ERROR_SET_RFCFUNCTION(_err, _func, strlen(_func)); return _retval
-
-#define SAPRFC_PARAMETER_PTR_DTOR sap_rfc_parameter_ptr_dtor
+#define SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, _retval) \
+	SAP_ERROR_SET_RFCFUNCTION(_err, _func, strlen(_func));		\
+	return _retval
 
 #define XtSizeOf(type, member) sizeof(((type *)0)->member)
 
 #if PHP_VERSION_ID < 70000
 
-#define sap_get_intern(_arg, type) (type*)zend_object_store_get_object(_arg TSRMLS_CC)
-#define sap_get_function(_arg) sap_get_intern(_arg, sap_function)
-#define sap_get_sap_object(_arg) sap_get_intern(_arg, sap_object)
+#	define sap_get_intern(_arg, type) (type*)zend_object_store_get_object(_arg TSRMLS_CC)
+#	define sap_get_function(_arg) sap_get_intern(_arg, sap_function)
+#	define sap_get_sap_object(_arg) sap_get_intern(_arg, sap_object)
 
-#define PHP_SAP_PARSE_PARAMS_BEGIN() do { zend_error_handling _eh; zend_replace_error_handling(EH_THROW, zend_invalid_args_exception, &_eh TSRMLS_CC);
-#define PHP_SAP_PARSE_PARAMS zend_parse_parameters
-#define PHP_SAP_PARSE_PARAMS_END() zend_restore_error_handling(&_eh TSRMLS_CC); } while(0)
+#	define PHP_SAP_PARSE_PARAMS_BEGIN() do { zend_error_handling _eh; zend_replace_error_handling(EH_THROW, zend_invalid_args_exception, &_eh TSRMLS_CC);
+#	define PHP_SAP_PARSE_PARAMS zend_parse_parameters
+#	define PHP_SAP_PARSE_PARAMS_END() zend_restore_error_handling(&_eh TSRMLS_CC); } while(0)
 
-#define SAP_THROW_SAPRFC_ERROR_EXCEPTION(_err) {		\
-	SAPRFC_ERROR_INFO *__err = (_err);					\
-	zval *_ex;											\
-	MAKE_STD_ZVAL(_ex);									\
-	sap_rfc_error_to_exception(__err, _ex TSRMLS_CC);	\
-	zend_throw_exception_object(_ex TSRMLS_CC);			\
-}
+#	define SAP_THROW_SAPRFC_ERROR_EXCEPTION(_err) do {		\
+		SAPRFC_ERROR_INFO *__err = (_err);					\
+		zval *_ex;											\
+		MAKE_STD_ZVAL(_ex);									\
+		sap_rfc_error_to_exception(__err, _ex TSRMLS_CC);	\
+		zend_throw_exception_object(_ex TSRMLS_CC);			\
+	} while(0)
 
-#define sap_throw_exception(_message, _code, _ce) do {																					\
-	const char *__message = (_message);																									\
-	int __code = (_code);																												\
-	zend_class_entry *__ex_ce = (_ce);																									\
-	zval *_ex;																															\
-	MAKE_STD_ZVAL(_ex);																													\
-	object_init_ex(_ex, __ex_ce);																										\
-	zend_update_property_stringl(zend_default_exception, _ex, "message", sizeof("message")-1, __message, strlen(__message) TSRMLS_CC);	\
-	zend_update_property_long(zend_default_exception, _ex, "code", sizeof("code") - 1, __code TSRMLS_CC);								\
-	zend_throw_exception_object(_ex TSRMLS_CC);																							\
-} while(0)
+#	define sap_throw_exception(_message, _code, _ce) do {																					\
+		const char *__message = (_message);																									\
+		int __code = (_code);																												\
+		zend_class_entry *__ex_ce = (_ce);																									\
+		zval *_ex;																															\
+		MAKE_STD_ZVAL(_ex);																													\
+		object_init_ex(_ex, __ex_ce);																										\
+		zend_update_property_stringl(zend_default_exception,_ex, "message", sizeof("message")-1, __message, strlen(__message) TSRMLS_CC);	\
+		zend_update_property_long(zend_default_exception, _ex, "code", sizeof("code") - 1, __code TSRMLS_CC);								\
+		zend_throw_exception_object(_ex TSRMLS_CC);																							\
+	} while(0)
 
-#define MY_ZEND_HASH_FOREACH(ht) do {												\
-	HashTable *__ht = (ht);															\
-	HashPosition __pos;																\
-	void **__data;																	\
-	for (zend_hash_internal_pointer_reset_ex(__ht, &__pos);							\
-		 zend_hash_get_current_data_ex(__ht, (void**)&__data, &__pos) == SUCCESS;	\
-		 zend_hash_move_forward_ex(__ht, &__pos))									\
-	{
+#	define MY_ZEND_HASH_FOREACH(ht) do {												\
+		HashTable *__ht = (ht);															\
+		HashPosition __pos;																\
+		void **__data;																	\
+		for (zend_hash_internal_pointer_reset_ex(__ht, &__pos);							\
+			 zend_hash_get_current_data_ex(__ht, (void**)&__data, &__pos) == SUCCESS;	\
+			 zend_hash_move_forward_ex(__ht, &__pos))									\
+		{
 
-#define MY_ZEND_HASH_FOREACH_VAL(ht, _zval) MY_ZEND_HASH_FOREACH(ht) _zval = *__data;
-#define MY_ZEND_HASH_FOREACH_KEY_VAL(ht, _h, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _h = __pos->h; _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
-#define MY_ZEND_HASH_FOREACH_STR_KEY(ht, _key, _keylen) MY_ZEND_HASH_FOREACH(ht) _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
-#define MY_ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
-#define MY_ZEND_HASH_FOREACH_STR_KEY_PTR(ht, _key, _keylen, _ptr) MY_ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _ptr);
+#	define MY_ZEND_HASH_FOREACH_VAL(ht, _zval) MY_ZEND_HASH_FOREACH(ht) _zval = *__data;
+#	define MY_ZEND_HASH_FOREACH_KEY_VAL(ht, _h, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _h = __pos->h; _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
+#	define MY_ZEND_HASH_FOREACH_STR_KEY(ht, _key, _keylen) MY_ZEND_HASH_FOREACH(ht) _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
+#	define MY_ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
+#	define MY_ZEND_HASH_FOREACH_STR_KEY_PTR(ht, _key, _keylen, _ptr) MY_ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _ptr);
 
-#define sap_read_object_property(_object, _prop, _scope) zend_read_property(_scope, _object, _prop, strlen(_prop) + 1, 0 TSRMLS_CC)
-#define sap_read_object_property_ex(_object, _prop, _proplen, _scope) zend_read_property(_scope, _object, _prop, _proplen, 0 TSRMLS_CC)
+#	define sap_read_object_property(_object, _prop, _scope) zend_read_property(_scope, _object, _prop, strlen(_prop) + 1, 0 TSRMLS_CC)
+#	define sap_read_object_property_ex(_object, _prop, _proplen, _scope) zend_read_property(_scope, _object, _prop, _proplen, 0 TSRMLS_CC)
 
-#define sap_fetch_connection_rsrc(_object) zend_fetch_resource(&_object TSRMLS_CC, -1, PHP_SAP_CONNECTION_RES_NAME, NULL, 1, le_php_sap_connection)
+#	define sap_fetch_connection_rsrc(_object) zend_fetch_resource(&_object TSRMLS_CC, -1, PHP_SAP_CONNECTION_RES_NAME, NULL, 1, le_php_sap_connection)
 
-#if PHP_VERSION_ID < 50400
-#define sap_make_resource(_zval, _ptr, _rsrc_id) zend_register_resource(_zval, _ptr, _rsrc_id)
+#	if PHP_VERSION_ID < 50400
+#		define sap_make_resource(_zval, _ptr, _rsrc_id) zend_register_resource(_zval, _ptr, _rsrc_id)
+#	else
+#		define sap_make_resource(_zval, _ptr, _rsrc_id) zend_register_resource(_zval, _ptr, _rsrc_id TSRMLS_CC)
+#	endif
+
+#	define sap_get_str_val(_str) (char*)(_str)
+
+#	define my_zval_ptr_dtor(_pzval) zval_ptr_dtor(&(_pzval))
+
 #else
-#define sap_make_resource(_zval, _ptr, _rsrc_id) zend_register_resource(_zval, _ptr, _rsrc_id TSRMLS_CC)
-#endif
 
-#define sap_get_str_val(_str) (char*)(_str)
+#	define sap_get_intern(_arg, type) (type*)((char *)Z_OBJ_P(_arg) - Z_OBJ_P(_arg)->handlers->offset)
+#	define sap_get_function(_arg) sap_get_intern(_arg, sap_function)
+#	define sap_get_sap_object(_arg) sap_get_intern(_arg, sap_object)
 
-#define my_zval_ptr_dtor(_pzval) zval_ptr_dtor(&(_pzval))
+#	define PHP_SAP_PARSE_PARAMS_BEGIN() do {
+#	define PHP_SAP_PARSE_PARAMS zend_parse_parameters_throw
+#	define PHP_SAP_PARSE_PARAMS_END() } while(0)
 
-#else
+#	define SAP_THROW_SAPRFC_ERROR_EXCEPTION(_err) {		\
+		SAPRFC_ERROR_INFO *__err = (_err);				\
+		zval _ex;										\
+		sap_rfc_error_to_exception(__err, &_ex);		\
+		zend_throw_exception_object(&_ex);				\
+	}
 
-#define sap_get_intern(_arg, type) (type*)((char *)Z_OBJ_P(_arg) - Z_OBJ_P(_arg)->handlers->offset)
-#define sap_get_function(_arg) sap_get_intern(_arg, sap_function)
-#define sap_get_sap_object(_arg) sap_get_intern(_arg, sap_object)
+	#define sap_throw_exception(_message, _code, _ce) do {																			\
+		const char *__message = (_message);																							\
+		int __code = (_code);																										\
+		zend_class_entry *_ex_ce = (_ce);																							\
+		zval _ex;																													\
+		object_init_ex(&_ex, _ex_ce);																								\
+		zend_update_property_stringl(zend_default_exception, &_ex, "message", sizeof("message")-1, __message, strlen(__message));	\
+		zend_update_property_long(zend_default_exception, &_ex, "code", sizeof("code") - 1, __code);								\
+		zend_throw_exception_object(&_ex);																							\
+	} while(0)
 
-#define PHP_SAP_PARSE_PARAMS_BEGIN() do {
-#define PHP_SAP_PARSE_PARAMS zend_parse_parameters_throw
-#define PHP_SAP_PARSE_PARAMS_END() } while(0)
+	#define MY_ZEND_HASH_FOREACH(ht) do {						\
+		HashTable *__ht = (ht);									\
+		HashPosition __pos;										\
+		for (zend_hash_internal_pointer_reset_ex(__ht, &__pos);	\
+			 __pos != HT_INVALID_IDX;							\
+			 zend_hash_move_forward_ex(__ht, &__pos))			\
+		{														\
+			Bucket *_p = __ht->arData + __pos;					\
+			zval *_z = &_p->val;
 
-#define SAP_THROW_SAPRFC_ERROR_EXCEPTION(_err) {	\
-	SAPRFC_ERROR_INFO *__err = (_err);				\
-	zval _ex;										\
-	sap_rfc_error_to_exception(__err, &_ex);		\
-	zend_throw_exception_object(&_ex);				\
-}
+#	define MY_ZEND_HASH_FOREACH_VAL(ht, _zval) MY_ZEND_HASH_FOREACH(ht) _zval = _z;
+#	define MY_ZEND_HASH_FOREACH_KEY_VAL(ht, _h, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _h = _p->h; _key = _p->key ? _p->key->val : NULL; _keylen = _p->key ? _p->key->len : 0;
+#	define MY_ZEND_HASH_FOREACH_STR_KEY(ht, _key, _keylen) MY_ZEND_HASH_FOREACH(ht) _key = _p->key ? _p->key->val : NULL; _keylen = _p->key ? _p->key->len : 0;
+#	define MY_ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _key = _p->key ? _p->key->val : NULL; _keylen = _p->key ? _p->key->len : 0;
+#	define MY_ZEND_HASH_FOREACH_STR_KEY_PTR(ht, _key, _keylen, _ptr) MY_ZEND_HASH_FOREACH_STR_KEY(ht, _key, _keylen) _ptr = Z_PTR_P(_z);
 
-#define sap_throw_exception(_message, _code, _ce) do {																			\
-	const char *__message = (_message);																							\
-	int __code = (_code);																										\
-	zend_class_entry *_ex_ce = (_ce);																							\
-	zval _ex;																													\
-	object_init_ex(&_ex, _ex_ce);																								\
-	zend_update_property_stringl(zend_default_exception, &_ex, "message", sizeof("message")-1, __message, strlen(__message));	\
-	zend_update_property_long(zend_default_exception, &_ex, "code", sizeof("code") - 1, __code);								\
-	zend_throw_exception_object(&_ex);																							\
-} while(0)
+#	define sap_read_object_property(_object, _prop, _scope) zend_read_property(_scope, _object, _prop, strlen(_prop) + 1, 0, NULL)
+#	define sap_read_object_property_ex(_object, _prop, _proplen, _scope) zend_read_property(_scope, _object, _prop, _proplen, 0, NULL)
 
-#define MY_ZEND_HASH_FOREACH(ht) do {						\
-	HashTable *__ht = (ht);									\
-	HashPosition __pos;										\
-	for (zend_hash_internal_pointer_reset_ex(__ht, &__pos);	\
-		 __pos != HT_INVALID_IDX;							\
-		 zend_hash_move_forward_ex(__ht, &__pos))			\
-	{														\
-		Bucket *_p = __ht->arData + __pos;					\
-		zval *_z = &_p->val;
+#	define sap_fetch_connection_rsrc(_object) zend_fetch_resource(Z_RES_P(_object), PHP_SAP_CONNECTION_RES_NAME, le_php_sap_connection)
 
-#define MY_ZEND_HASH_FOREACH_VAL(ht, _zval) MY_ZEND_HASH_FOREACH(ht) _zval = _z;
-#define MY_ZEND_HASH_FOREACH_KEY_VAL(ht, _h, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _h = _p->h; _key = _p->key ? _p->key->val : NULL; _keylen = _p->key ? _p->key->len : 0;
-#define MY_ZEND_HASH_FOREACH_STR_KEY(ht, _key, _keylen) MY_ZEND_HASH_FOREACH(ht) _key = _p->key ? _p->key->val : NULL; _keylen = _p->key ? _p->key->len : 0;
-#define MY_ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _zval) MY_ZEND_HASH_FOREACH_VAL(ht, _zval) _key = _p->key ? _p->key->val : NULL; _keylen = _p->key ? _p->key->len : 0;
-#define MY_ZEND_HASH_FOREACH_STR_KEY_PTR(ht, _key, _keylen, _ptr) MY_ZEND_HASH_FOREACH_STR_KEY(ht, _key, _keylen) _ptr = Z_PTR_P(_z);
+#	define sap_make_resource(_zval, _ptr, _rsrc_id) ZVAL_RES(_zval, zend_register_resource(_ptr, _rsrc_id))
 
-#define sap_read_object_property(_object, _prop, _scope) zend_read_property(_scope, _object, _prop, strlen(_prop) + 1, 0, NULL)
-#define sap_read_object_property_ex(_object, _prop, _proplen, _scope) zend_read_property(_scope, _object, _prop, _proplen, 0, NULL)
+#	define sap_get_str_val(_zstr) (char*)ZSTR_VAL(_zstr)
 
-#define sap_fetch_connection_rsrc(_object) zend_fetch_resource(Z_RES_P(_object), PHP_SAP_CONNECTION_RES_NAME, le_php_sap_connection)
-
-#define sap_make_resource(_zval, _ptr, _rsrc_id) ZVAL_RES(_zval, zend_register_resource(_ptr, _rsrc_id))
-
-#define sap_get_str_val(_zstr) (char*)ZSTR_VAL(_zstr)
-
-#define my_zval_ptr_dtor(_pzval) zval_ptr_dtor(_pzval)
+#	define my_zval_ptr_dtor(_pzval) zval_ptr_dtor(_pzval)
 
 #endif
 
@@ -1038,7 +1035,7 @@ static HashTable * sap_function_description_to_array(RFC_FUNCTION_DESC_HANDLE fd
 	 * Allocate parameters' hashtable
 	 */
 	ALLOC_HASHTABLE(retval);
-	zend_hash_init(retval, paramCount, NULL, SAPRFC_PARAMETER_PTR_DTOR, 0);
+	zend_hash_init(retval, paramCount, NULL, sap_rfc_parameter_ptr_dtor, 0);
 
 	for (i = 0; i < paramCount; i++)
 	{
@@ -1100,23 +1097,15 @@ static php_sap_connection * sap_create_connection_resource(HashTable *lparams)
 				continue;
 			}
 
-			/* param value must be string because it has to be converted later to a UTF-16 string */
-			switch (Z_TYPE_P(zlpvalue))
+			/* param value must be string because it has to be converted later to a SAP_UC string */
+			if (Z_TYPE_P(zlpvalue) != IS_STRING)
 			{
-				case IS_STRING: break;
-				case IS_LONG:
-				case IS_DOUBLE:
-				case IS_NULL:
-				{
 #if PHP_VERSION_ID < 70000
-					MAKE_STD_ZVAL(pcopy);
+				MAKE_STD_ZVAL(pcopy);
 #endif
-					ZVAL_ZVAL(pcopy, zlpvalue, 1, 0);
-					convert_to_string(pcopy);
-					zlpvalue = pcopy;
-				}
-				default: continue; /* Ignore parameters with unsupported values */
-
+				ZVAL_ZVAL(pcopy, zlpvalue, 1, 0);
+				convert_to_string(pcopy);
+				zlpvalue = pcopy;
 			}
 
 			if (z = my_zend_hash_add_zval(retval->lparams, lparam, lparamlen, zlpvalue)) {
@@ -1145,8 +1134,6 @@ static void php_sap_connection_ptr_dtor(php_sap_connection *connection)
 
 		zend_hash_destroy(connection->lparams);
 		FREE_HASHTABLE(connection->lparams);
-
-		memset(connection, 0, sizeof(php_sap_connection));
 
 		efree(connection);
 	}
@@ -1218,7 +1205,8 @@ static void sap_object_free_object_storage(zend_object *object)
 	}
 
 #if PHP_VERSION_ID < 70000
-	efree(intern); /* custom object memory is freed by php on versions >= 7.0.0 */
+	/* custom object memory is freed by php on versions >= 7.0.0 */
+	efree(intern);
 #endif
 }
 
@@ -1426,6 +1414,7 @@ static int sap_function_cast_object(zval *readobj, zval *retval, int type TSRMLS
 
 	switch (type)
 	{
+		/* Cast to string returns the name of the function by calling SapFunction::getName */
 		case IS_STRING:
 		{
 #if PHP_VERSION_ID >= 70000
@@ -1434,8 +1423,6 @@ static int sap_function_cast_object(zval *readobj, zval *retval, int type TSRMLS
 				if (readobj == retval) {
 					zval_ptr_dtor(readobj);
 				}
-
-				
 #else
 			if (SUCCESS == sap_call_object_method(readobj, Z_OBJCE_P(readobj), "getname", NULL, NULL, &zname_ptr TSRMLS_CC))
 			{

@@ -1,16 +1,31 @@
-ARG_WITH("sap", "for sap support", "no");
+// $Id$
+// vim:ft=javascript
 
-if (PHP_SAP != "no") {
+ARG_ENABLE("sap", "Enable SAP remote function calls support", "no");
+ARG_WITH("sapnwrfcsdk", "SAP NetWeaver RFC SDK directory (available from SAP marketplace)", "no");
+ARG_WITH("sap-unicode", "Disable unicode. Use if connecting to non-unicode R/3 system", "yes");
 
-	if (CHECK_HEADER_ADD_INCLUDE("sapnwrfc.h", "CFLAGS_SAP") &&
-		CHECK_LIB("sapnwrfc.lib", "sap", PHP_SAP) &&
-		CHECK_LIB("libsapucum.lib", "sap", PHP_SAP)) {
-		 
-		  EXTENSION("sap", "src/php_sap.c");
-		  
-		  AC_DEFINE('HAVE_SAP', 1, 'SAP remote function calls support enabled');
+if (PHP_SAP != "no")
+{
+	var sapnwrfcsdk_include = null, sapnwrfcsdk_lib = null;
+	
+	if (PHP_SAPNWRFCSDK != "no") {
+		sapnwrfcsdk_include = PHP_SAPNWRFCSDK + "/include";
+		sapnwrfcsdk_lib = PHP_SAPNWRFCSDK + "/lib";
+	}
+	
+	if (CHECK_HEADER_ADD_INCLUDE("sapnwrfc.h", "CFLAGS_SAP", sapnwrfcsdk_include)
+	&&	CHECK_LIB("sapnwrfc.lib", "sap", sapnwrfcsdk_lib)
+	&&	CHECK_LIB("libsapucum.lib", "sap", sapnwrfcsdk_lib))
+	{
+		EXTENSION("sap", "php_sap.c", PHP_SAP_SHARED);
+		AC_DEFINE("HAVE_SAP", 1, "SAP remote function call support");
+		
+		if (PHP_SAP_UNICODE == "yes") {
+			AC_DEFINE("SAPwithUNICODE", 1, "SAP unicode conversion");
+		}
 	}
 	else {
-		WARNING( "SAP extension not enabled; libraries not found" );
+		ERROR("Could not enable SAP remote function call support, sapnwrfcsdk libraries and/or headers are missing. Try again using --with-sapnwrfcsdk")
 	}
 }
