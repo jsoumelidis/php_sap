@@ -647,7 +647,7 @@ int format_datetime_object(zval *object, zval *return_value, const char *format 
 	return call_result;
 }
 
-static zval php_sap_create_exception(zend_class_entry *ce, int code, char *format, ...)
+static zval php_sap_create_exception(zend_class_entry *ce, int code TSRMLS_DC, char *format, ...)
 {
 	va_list args;
 	char *message;
@@ -663,8 +663,8 @@ static zval php_sap_create_exception(zend_class_entry *ce, int code, char *forma
 
 	object_init_ex(&ex, ce);
 
-	zend_update_property_string(zend_default_exception, &ex, "message", sizeof("message") - 1, message);
-	zend_update_property_long(zend_default_exception, &ex, "code", sizeof("code") - 1, code);
+	zend_update_property_string(zend_default_exception, &ex, "message", sizeof("message") - 1, message TSRMLS_CC);
+	zend_update_property_long(zend_default_exception, &ex, "code", sizeof("code") - 1, code TSRMLS_CC);
 
 	return ex;
 }
@@ -2790,7 +2790,7 @@ PHP_METHOD(SapRfcReadTable, select)
 				zval *zfieldname = zfields;
 
 				if (Z_STRLEN_P(zfieldname) == 0) {
-					zend_throw_exception(zend_invalid_args_exception, "SapRfcReadTable::select() : Empty string as query field is not allowed", -1);
+					zend_throw_exception(zend_invalid_args_exception, "SapRfcReadTable::select() : Empty string as query field is not allowed", -1 TSRMLS_CC);
 					RETURN_FALSE;
 				}
 
@@ -2817,7 +2817,7 @@ PHP_METHOD(SapRfcReadTable, select)
 				const char *exMessageFormat = "Argument 1 of SapRfcReadTable::select() must be a string or array. %s given";
 				const char *typeGiven = zend_get_type_by_const(Z_TYPE_P(zfields));
 
-				zend_throw_exception_ex(zend_invalid_args_exception, -1, exMessageFormat, typeGiven);
+				zend_throw_exception_ex(zend_invalid_args_exception, -1 TSRMLS_CC, exMessageFormat, typeGiven);
 				RETURN_FALSE;
 			}
 
