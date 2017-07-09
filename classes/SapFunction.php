@@ -42,7 +42,7 @@ class SapFunction
 	/**
 	 * Retrieve all parameter names for this function module
 	 *
-	 * @return array
+	 * @return string[]
 	 */
 	public function getParameters() : array {}
 	

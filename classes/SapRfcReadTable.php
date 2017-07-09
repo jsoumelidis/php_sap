@@ -25,7 +25,7 @@ class SapRfcReadTable extends SapFunction
 	 * @param int $limit
 	 * @param int $offset
 	 *
-	 * @return array
+	 * @return array rows selected from $table
 	 *
 	 * @throws SapException
 	 */
