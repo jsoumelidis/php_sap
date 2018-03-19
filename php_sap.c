@@ -2315,7 +2315,7 @@ PHP_METHOD(Sap, fetchFunction)
                 * If the first argument is a SapFunction object, get function's name
                 * by calling SapFunction::getName method
                 */
-                zval *retval_ptr;
+                zval *retval_ptr = NULL;
 #if PHP_VERSION_ID >= 70000
                 zval rv;
 
@@ -2612,7 +2612,7 @@ PHP_METHOD(SapFunction, getTypeName)
 
 PHP_METHOD(SapFunction, __toString)
 {
-    zval *zname_ptr;
+    zval *zname_ptr = NULL;
 #if PHP_VERSION_ID >= 70000
     zval zname;
 
@@ -2620,7 +2620,7 @@ PHP_METHOD(SapFunction, __toString)
 #endif
 
     if (SUCCESS == sap_call_object_method(getThis(), Z_OBJCE_P(getThis()), "getname", NULL, NULL, zname_ptr TSRMLS_CC)) {
-        RETVAL_ZVAL(zname_ptr, 1, 0);
+        RETVAL_ZVAL(zname_ptr, 0, 0);
     }
 }
 
