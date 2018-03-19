@@ -1528,12 +1528,12 @@ static int sap_export_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
         }
         case RFCTYPE_BYTE:
         {
-            SAP_RAW *buffer = emalloc(nucLength);
+            RFC_BYTE *buffer = emalloc(nucLength * sizeof(RFC_BYTE));
 
-            memset(buffer, 0, nucLength);
+            memset(buffer, 0, nucLength * sizeof(RFC_BYTE));
 
             if (RFC_OK != RfcGetBytes(dh, name, buffer, nucLength, (RFC_ERROR_INFO*)err)) {
-                SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetXString", FAILURE);
+                SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcGetBytes", FAILURE);
             }
 
 #if PHP_VERSION_ID < 70000
