@@ -545,7 +545,7 @@ static int sapuc_to_utf8(SAP_UC *strU16, char **strU8, int *strU8len, SAPRFC_ERR
     return sapuc_to_utf8_l(strU16, strlenU(strU16), strU8, strU8len, err);
 }
 
-static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, const char *func, zend_function *fn_proxy, zval *args, zval *rv TSRMLS_DC)
+static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, const char *func, zend_function *fn_proxy, zval *args, zval **rv_ptr_ptr TSRMLS_DC)
 {
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;
@@ -563,14 +563,14 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
     fci.size = sizeof(zend_fcall_info);
 
 #if PHP_VERSION_ID >= 70000
-    fci.retval = rv;
+    fci.retval = *rv_ptr_ptr;
 
     ZVAL_STRING(&function_name, func);
     fci.function_name = function_name;
 
     if (!fn_proxy && !(fn_proxy = zend_hash_find_ptr(&scope_ce->function_table, Z_STR(fci.function_name)))) {
 #else
-    fci.retval_ptr_ptr = &rv;
+    fci.retval_ptr_ptr = rv_ptr_ptr;
 
     ZVAL_STRING(&function_name, func, 1);
     fci.function_name = &function_name;
@@ -623,15 +623,15 @@ int format_datetime_object(zval *object, zval *return_value, const char *format 
 #if PHP_VERSION_ID < 70000
     ZVAL_STRING(zformat_argument, format, 1);
 
-    result = sap_call_object_method(object, Z_OBJCE_P(object), "format", NULL, &__args, return_value_ptr TSRMLS_CC);
+    result = sap_call_object_method(object, Z_OBJCE_P(object), "format", NULL, &__args, &return_value_ptr TSRMLS_CC);
 
     if (result == SUCCESS) {
-        ZVAL_ZVAL(return_value, return_value_ptr, 1, 1);
+        RETVAL_ZVAL(return_value_ptr, 1, 1);
     }
 #else
     ZVAL_STRING(zformat_argument, format);
 
-    result = sap_call_object_method(object, Z_OBJCE_P(object), "format", NULL, &__args, return_value);
+    result = sap_call_object_method(object, Z_OBJCE_P(object), "format", NULL, &__args, &return_value);
 #endif
 
     zval_dtor(&__args);
@@ -2323,7 +2323,7 @@ PHP_METHOD(Sap, fetchFunction)
 #endif
 
                 /* all functions/methods for php objects are stored in lower case */
-                if (SUCCESS != sap_call_object_method(zfunction, Z_OBJCE_P(zfunction), "getname", NULL, NULL, retval_ptr TSRMLS_CC)) {
+                if (SUCCESS != sap_call_object_method(zfunction, Z_OBJCE_P(zfunction), "getname", NULL, NULL, &retval_ptr TSRMLS_CC)) {
                     RETURN_FALSE;
                 }
 
@@ -2392,7 +2392,7 @@ PHP_METHOD(Sap, fetchFunction)
             const char *constructor_func_name = fce->constructor->common.function_name;
 #endif
 
-            retval = sap_call_object_method(return_value, fce, constructor_func_name, fce->constructor, zargs, rv_ptr TSRMLS_CC);
+            retval = sap_call_object_method(return_value, fce, constructor_func_name, fce->constructor, zargs, &rv_ptr TSRMLS_CC);
 
             /* we are not interested in constructor's return value */
             my_zval_ptr_dtor(rv_ptr);
@@ -2619,8 +2619,8 @@ PHP_METHOD(SapFunction, __toString)
     zname_ptr = &zname;
 #endif
 
-    if (SUCCESS == sap_call_object_method(getThis(), Z_OBJCE_P(getThis()), "getname", NULL, NULL, zname_ptr TSRMLS_CC)) {
-        RETVAL_ZVAL(zname_ptr, 0, 0);
+    if (SUCCESS == sap_call_object_method(getThis(), Z_OBJCE_P(getThis()), "getname", NULL, NULL, &zname_ptr TSRMLS_CC)) {
+        RETVAL_ZVAL(zname_ptr, 1, 1);
     }
 }
 
@@ -2923,7 +2923,7 @@ PHP_METHOD(SapRfcReadTable, select)
         pzresult = &zresult;
 #endif
 
-        result = sap_call_object_method(getThis(), sap_ce_SapFunction, "__invoke", NULL, &__invoke_args, pzresult TSRMLS_CC);
+        result = sap_call_object_method(getThis(), sap_ce_SapFunction, "__invoke", NULL, &__invoke_args, &pzresult TSRMLS_CC);
 
         zval_dtor(&__invoke_args);
         RETVAL_FALSE;
