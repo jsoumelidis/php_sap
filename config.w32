@@ -2,22 +2,22 @@
 // vim:ft=javascript
 
 ARG_ENABLE("sap", "Enable SAP remote function calls support", "no");
-ARG_WITH("sapnwrfcsdk", "SAP NetWeaver RFC SDK directory (available from SAP marketplace)", "no");
+ARG_WITH("sap-nwrfcsdk", "SAP NetWeaver RFC SDK directory (available from SAP marketplace)", "no");
 ARG_WITH("sap-unicode", "Disable unicode. Use if connecting to non-unicode R/3 system", "yes");
 
 if (PHP_SAP != "no")
 {
-	var sapnwrfcsdk_include = null, sapnwrfcsdk_lib = null;
+	var SAPNWRFCSDK_INCLUDE_DIR = null, SAPNWRFCSDK_LIB_DIR = null;
 	
-	if (PHP_SAPNWRFCSDK != "no") {
-		sapnwrfcsdk_include = PHP_SAPNWRFCSDK + "/include";
-		sapnwrfcsdk_lib = PHP_SAPNWRFCSDK + "/lib";
+	if (PHP_SAP_NWRFCSDK != "no") {
+		SAPNWRFCSDK_INCLUDE_DIR = PHP_SAP_NWRFCSDK + "\\include";
+		SAPNWRFCSDK_LIB_DIR = PHP_SAP_NWRFCSDK + "\\lib";
 	}
 	
-	if (CHECK_HEADER_ADD_INCLUDE("sapnwrfc.h", "CFLAGS_SAP", sapnwrfcsdk_include)
-	&&	CHECK_LIB("sapnwrfc.lib", "sap", sapnwrfcsdk_lib)
-	&&	CHECK_LIB("libsapucum.lib", "sap", sapnwrfcsdk_lib))
-	{
+	if (CHECK_HEADER_ADD_INCLUDE("sapnwrfc.h", "CFLAGS_SAP", SAPNWRFCSDK_INCLUDE_DIR) &&
+		CHECK_LIB("sapnwrfc.lib", "sap", SAPNWRFCSDK_LIB_DIR) &&
+		CHECK_LIB("libsapucum.lib", "sap", SAPNWRFCSDK_LIB_DIR)
+	) {
 		EXTENSION("sap", "php_sap.c", PHP_SAP_SHARED);
 		AC_DEFINE("HAVE_SAP", 1, "SAP remote function call support");
 		
@@ -26,6 +26,12 @@ if (PHP_SAP != "no")
 		}
 	}
 	else {
-		ERROR("Could not enable SAP remote function call support, sapnwrfcsdk libraries and/or headers are missing. Try again using --with-sapnwrfcsdk")
+		ERROR("Could not enable SAP remote function call support, sapnwrfc sdk libraries and/or headers are missing. Try again using --with-sap-nwrfcsdk")
+	}
+	
+	if (PHP_ZTS == "yes" && CHECK_HEADER_ADD_INCLUDE("pthread.h", "CFLAGS_SAP") &&
+		CHECK_LIB("pthreadVC2.lib", "sap")
+	) {
+		AC_DEFINE("SAPwithPTHREADS", 1);
 	}
 }

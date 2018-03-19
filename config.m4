@@ -4,7 +4,7 @@ dnl config.m4 for sap extension
 PHP_ARG_ENABLE(sap, for SAP remote function call support,
 [  --enable-sap            Enable SAP remote function call support.], no, yes)
 
-PHP_ARG_WITH(sapnwrfcsdk, for nwrfcsdk optional path,
+PHP_ARG_WITH(sap-nwrfcsdk, for nwrfcsdk optional path,
 [  --with-sap-nwrfcsdk     SAP NetWeaver RFC SDK directory (available from SAP marketplace)], no, no)
 
 PHP_ARG_ENABLE(sap-unicode, SAP unicode support,
@@ -48,7 +48,7 @@ if test "$PHP_SAP" != "no"; then
   
   PHP_ADD_INCLUDE($SAPNWRFCSDK/include)
   
-  if test "$PHP_SAP_UNICODE" == "yes"; then
+  if test "$PHP_SAP_UNICODE" != "no"; then
     AC_DEFINE(SAPwithUNICODE, 1, [SAP unicode conversion])
   fi
   

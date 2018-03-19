@@ -5,9 +5,8 @@
 #include "php_sap.h"
 #include "hash.h"
 
-#ifdef PHP_SAP_WITH_PTHREADS
-#   define PTW32_INCLUDE_WINDOWS_H
-#   ifdef TIME_H
+#if defined(SAPwithPTHREADS)
+#   if defined(WIN32)
 #       define HAVE_STRUCT_TIMESPEC
 #   endif
 #   include "pthread.h"
@@ -19,16 +18,10 @@
 #include "zend_objects.h"
 #include "zend_exceptions.h"
 
-#ifdef HAVE_SPL
-#   include "ext/spl/spl_exceptions.h"
-#   define zend_invalid_args_exception spl_ce_InvalidArgumentException
-#else
-#   define zend_invalid_args_exception zend_default_exception
-#endif
+#include "ext/spl/spl_exceptions.h"
+#define zend_invalid_args_exception spl_ce_InvalidArgumentException
 
-#ifdef HAVE_DATE
-#   include "ext/date/php_date.h"
-#endif
+#include "ext/date/php_date.h"
 
 #define SAP_ME_ARGS(classname, method) arginfo_##classname##_##method
 #define SAP_FE_ARGS(func) arginfo_func_##func
@@ -101,23 +94,23 @@ typedef struct _sap_object {
 } sap_object;
 
 ZEND_BEGIN_MODULE_GLOBALS(sap)
-int rtrim_export_strings;
+    int rtrim_export_strings;
 ZEND_END_MODULE_GLOBALS(sap)
 
 ZEND_DECLARE_MODULE_GLOBALS(sap)
 
 static ZEND_MODULE_GLOBALS_CTOR_D(sap)
 {
-    sap_globals->rtrim_export_strings = 1;
+    PHP_SAP_GLOBALS(rtrim_export_strings) = 1;
 }
 
 PHP_INI_BEGIN()
-STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "On", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
+    STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "On", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
 PHP_INI_END()
 
 SAPRFC_ERROR_INFO sap_last_error;
 
-#ifdef PHP_SAP_WITH_PTHREADS
+#ifdef SAPwithPTHREADS
 pthread_mutex_t rfc_utf8_to_sapuc_mutex;
 pthread_mutex_t rfc_sapuc_to_utf8_mutex;
 #endif
@@ -126,7 +119,7 @@ pthread_mutex_t rfc_sapuc_to_utf8_mutex;
 PHP_FUNCTION(sap_connect);
 
 ZEND_BEGIN_ARG_INFO(SAP_FE_ARGS(sap_connect), 0)
-ZEND_ARG_INFO(0, logonParameters)
+    ZEND_ARG_INFO(0, logonParameters)
 ZEND_END_ARG_INFO()
 
 PHP_FUNCTION(sap_last_error);
@@ -134,9 +127,9 @@ PHP_FUNCTION(sap_last_error);
 PHP_FUNCTION(sap_invoke_function);
 
 ZEND_BEGIN_ARG_INFO(SAP_FE_ARGS(sap_invoke_function), 0)
-ZEND_ARG_INFO(0, module)
-ZEND_ARG_INFO(0, connection)
-ZEND_ARG_INFO(0, imports)
+    ZEND_ARG_INFO(0, module)
+    ZEND_ARG_INFO(0, connection)
+    ZEND_ARG_INFO(0, imports)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_sap_module_function_entry[] = {
@@ -250,27 +243,27 @@ const zend_function_entry sap_exception_fe[] = {
 PHP_METHOD(Sap, __construct);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, __construct), 0)
-ZEND_ARG_INFO(0, logonParameters)
+    ZEND_ARG_INFO(0, logonParameters)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, setFunctionClass);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, setFunctionClass), 0)
-ZEND_ARG_INFO(0, classname)
+    ZEND_ARG_INFO(0, classname)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, call);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, call), 0)
-ZEND_ARG_INFO(0, name)
-ZEND_ARG_INFO(0, imports)
+    ZEND_ARG_INFO(0, name)
+    ZEND_ARG_INFO(0, imports)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, fetchFunction);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, fetchFunction), 0)
-ZEND_ARG_INFO(0, name)
-ZEND_ARG_INFO(0, moduleClass)
+    ZEND_ARG_INFO(0, name)
+    ZEND_ARG_INFO(0, moduleClass)
 ZEND_END_ARG_INFO()
 
 const zend_function_entry sap_fe_Sap[] = {
@@ -287,15 +280,15 @@ PHP_METHOD(SapFunction, getName);
 PHP_METHOD(SapFunction, setActive);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapFunction, setActive), 0)
-ZEND_ARG_INFO(0, param)
-ZEND_ARG_INFO(0, isActive)
+    ZEND_ARG_INFO(0, param)
+    ZEND_ARG_INFO(0, isActive)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, __invoke);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapFunction, __invoke), 0)
-ZEND_ARG_INFO(0, args)
-ZEND_END_ARG_INFO()
+    ZEND_ARG_INFO(0, args)
+    ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, getParameters);
 
@@ -304,7 +297,7 @@ PHP_METHOD(SapFunction, getTypeName);
 PHP_METHOD(SapFunction, __toString);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapFunction, getTypeName), 0)
-ZEND_ARG_INFO(0, param)
+    ZEND_ARG_INFO(0, param)
 ZEND_END_ARG_INFO()
 
 const zend_function_entry sap_fe_SapFunction[] = {
@@ -323,11 +316,11 @@ PHP_METHOD(SapRfcReadTable, getName);
 PHP_METHOD(SapRfcReadTable, select);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapRfcReadTable, select), 0)
-ZEND_ARG_INFO(0, fields)
-ZEND_ARG_INFO(0, table)
-ZEND_ARG_INFO(0, options)
-ZEND_ARG_INFO(0, rowcount)
-ZEND_ARG_INFO(0, offset)
+    ZEND_ARG_INFO(0, fields)
+    ZEND_ARG_INFO(0, table)
+    ZEND_ARG_INFO(0, options)
+    ZEND_ARG_INFO(0, rowcount)
+    ZEND_ARG_INFO(0, offset)
 ZEND_END_ARG_INFO()
 
 const zend_function_entry sap_fe_SapRfcReadTable[] = {
@@ -427,14 +420,14 @@ static int utf8_to_sapuc_l(char *str, int len, SAP_UC **uc, unsigned int *uc_len
 
 try_again:
 
-#if PHP_SAP_WITH_PTHREADS
+#if SAPwithPTHREADS
     /* Avoid concurrent access to the RfcSAPUCToUTF8 function */
     pthread_mutex_lock(&rfc_utf8_to_sapuc_mutex);
 #endif
 
     res = RfcUTF8ToSAPUC((RFC_BYTE*)str, len, retval, &sapuc_num_chars, uc_len, (RFC_ERROR_INFO*)err);
 
-#if PHP_SAP_WITH_PTHREADS
+#if SAPwithPTHREADS
     pthread_mutex_unlock(&rfc_utf8_to_sapuc_mutex);
 #endif
 
@@ -478,9 +471,7 @@ try_again:
 
 static int utf8_to_sapuc(char *str, SAP_UC **uc, unsigned int *uc_len, SAPRFC_ERROR_INFO *err)
 {
-    int strl = strlen(str);
-
-    return utf8_to_sapuc_l(str, strl, uc, uc_len, err);
+    return utf8_to_sapuc_l(str, strlen(str), uc, uc_len, err);
 }
 
 static int sapuc_to_utf8_l(SAP_UC *strU16, unsigned int strU16len, char **strU8, int *strU8len, SAPRFC_ERROR_INFO *err)
@@ -491,14 +482,14 @@ static int sapuc_to_utf8_l(SAP_UC *strU16, unsigned int strU16len, char **strU8,
 
 try_again:
 
-#if PHP_SAP_WITH_PTHREADS
+#if SAPwithPTHREADS
     /* Avoid concurrent access to the RfcSAPUCToUTF8 function */
     pthread_mutex_lock(&rfc_sapuc_to_utf8_mutex);
 #endif
 
     res = RfcSAPUCToUTF8(strU16, strU16len, (RFC_BYTE*)utf8, &utf8len, strU8len, (RFC_ERROR_INFO*)err);
 
-#if PHP_SAP_WITH_PTHREADS
+#if SAPwithPTHREADS
     pthread_mutex_unlock(&rfc_sapuc_to_utf8_mutex);
 #endif
 
@@ -563,7 +554,7 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
     fci.size = sizeof(zend_fcall_info);
 
 #if PHP_VERSION_ID >= 70000
-    fci.retval = *rv_ptr_ptr;
+    fci.retval = (zval*)(*rv_ptr_ptr);
 
     ZVAL_STRING(&function_name, func);
     fci.function_name = function_name;
@@ -1292,7 +1283,6 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 
             break;
         }
-#if HAVE_DATE
         case RFCTYPE_TIME:
         case RFCTYPE_DATE:
         {
@@ -1326,7 +1316,6 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
             }
             /* else: go to case default */
         }
-#endif
         default:
         {
             zval copy;
@@ -2382,7 +2371,7 @@ PHP_METHOD(Sap, fetchFunction)
         if (fce->constructor)
         {
             int retval;
-            zval *rv_ptr;
+            zval *rv_ptr = NULL;
 #if PHP_VERSION_ID >= 70000
             const char *constructor_func_name = ZSTR_VAL(fce->constructor->common.function_name);
             zval rv;
@@ -2916,7 +2905,7 @@ PHP_METHOD(SapRfcReadTable, select)
     /* Call RFC_READ_TABLE */
     {
         int result;
-        zval *pzresult;
+        zval *pzresult = NULL;
 #if PHP_VERSION_ID >= 70000
         zval zresult;
 
@@ -3039,7 +3028,7 @@ PHP_MINIT_FUNCTION(sap)
     /* instatiate last error to NULL*/
     memset(&sap_last_error, 0, sizeof(SAPRFC_ERROR_INFO));
 
-#if PHP_SAP_WITH_PTHREADS
+#if SAPwithPTHREADS
     /* initialize conversion mutexes */
     rfc_utf8_to_sapuc_mutex = PTHREAD_MUTEX_INITIALIZER;
     rfc_sapuc_to_utf8_mutex = PTHREAD_MUTEX_INITIALIZER;

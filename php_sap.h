@@ -7,7 +7,7 @@
 #ifdef ZTS
 #   include "TSRM.h"
 #   define PHP_SAP_GLOBALS(v) TSRMG(sap_globals_id, zend_sap_globals*, v)
-#   else
+#else
 #   define PHP_SAP_GLOBALS(v) (sap_globals.v)
 #endif
 
