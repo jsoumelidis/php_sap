@@ -10,6 +10,8 @@ PHP_ARG_WITH(sap-nwrfcsdk, for nwrfcsdk optional path,
 PHP_ARG_ENABLE(sap-unicode, SAP unicode support,
 [  --disable-sap-unicode   Disable unicode. Use if connecting to non-unicode R/3 system], yes, no)
 
+PHP_ARG_ENABLE(sap-pthreads, Disable PThreads support,
+[  --disable-sap-pthreads  Disable PThreads support], yes, no);
 
 if test "$PHP_SAP" != "no"; then
   SAPNWRFCSDK="";
@@ -76,14 +78,16 @@ if test "$PHP_SAP" != "no"; then
   
   AC_DEFINE(HAVE_SAP, 1, [SAP remote function call support])
   
-  if test "$PHP_ZTS" == "yes"; then
-    AC_MSG_CHECKING([for pthread.h])
-    AC_CHECK_HEADER([pthread.h], [
-      AC_DEFINE(SAPwithPTHREADS, 1, [Compile SAP extension with pthreads support])
-      AC_MSG_RESULT(yes. Pthreads support for SAP enabled)
-    ], [
-      AC_MSG_RESULT(no. Pthreads support for SAP not enabled)
-    ])
+  if test "$PHP_SAP_PTHREADS" == "yes"; then
+    if test "$PHP_ZTS" == "yes"; then
+      AC_MSG_CHECKING([for pthread.h])
+      AC_CHECK_HEADER([pthread.h], [
+        AC_DEFINE(SAPwithPTHREADS, 1, [Compile SAP extension with pthreads support])
+        AC_MSG_RESULT(yes. Pthreads support for SAP enabled)
+      ], [
+        AC_MSG_RESULT(no. Pthreads support for SAP not enabled)
+      ])
+    fi
   fi
 
   PHP_NEW_EXTENSION(sap, php_sap.c, $ext_shared)

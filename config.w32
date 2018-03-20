@@ -3,35 +3,38 @@
 
 ARG_ENABLE("sap", "Enable SAP remote function calls support", "no");
 ARG_WITH("sap-nwrfcsdk", "SAP NetWeaver RFC SDK directory (available from SAP marketplace)", "no");
-ARG_WITH("sap-unicode", "Disable unicode. Use if connecting to non-unicode R/3 system", "yes");
+ARG_ENABLE("sap-unicode", "Disable unicode for non-unicode R/3 systems", "yes");
+ARG_ENABLE("sap-pthreads", "Disable PThreads support", "yes");
 
 if (PHP_SAP != "no")
 {
 	var SAPNWRFCSDK_INCLUDE_DIR = null, SAPNWRFCSDK_LIB_DIR = null;
+	MESSAGE("SAP UNICODE:" + PHP_SAP_UNICODE + "\n");
+	if (PHP_SAP_UNICODE == "yes") {
+		AC_DEFINE("SAPwithUNICODE", 1, "SAP unicode conversion");
+		MESSAGE("Enabled unicode support for the NW RFC SDK");
+	}
+	
+	if (PHP_ZTS == "yes" &&
+		CHECK_HEADER_ADD_INCLUDE("pthread.h", "CFLAGS_SAP") &&
+		CHECK_LIB("pthreadVC2.lib", "sap")
+	) {
+		AC_DEFINE("SAPwithPTHREADS", 1);
+		MESSAGE("Enabled pthreads support for sap extension");
+	}
 	
 	if (PHP_SAP_NWRFCSDK != "no") {
 		SAPNWRFCSDK_INCLUDE_DIR = PHP_SAP_NWRFCSDK + "\\include";
 		SAPNWRFCSDK_LIB_DIR = PHP_SAP_NWRFCSDK + "\\lib";
 	}
 	
-	if (CHECK_HEADER_ADD_INCLUDE("sapnwrfc.h", "CFLAGS_SAP", SAPNWRFCSDK_INCLUDE_DIR) &&
-		CHECK_LIB("sapnwrfc.lib", "sap", SAPNWRFCSDK_LIB_DIR) &&
-		CHECK_LIB("libsapucum.lib", "sap", SAPNWRFCSDK_LIB_DIR)
+	if (!CHECK_HEADER_ADD_INCLUDE("sapnwrfc.h", "CFLAGS_SAP", SAPNWRFCSDK_INCLUDE_DIR) ||
+		!CHECK_LIB("sapnwrfc.lib", "sap", SAPNWRFCSDK_LIB_DIR) ||
+		!CHECK_LIB("libsapucum.lib", "sap", SAPNWRFCSDK_LIB_DIR)
 	) {
-		EXTENSION("sap", "php_sap.c", PHP_SAP_SHARED);
-		AC_DEFINE("HAVE_SAP", 1, "SAP remote function call support");
-		
-		if (PHP_SAP_UNICODE == "yes") {
-			AC_DEFINE("SAPwithUNICODE", 1, "SAP unicode conversion");
-		}
-	}
-	else {
-		ERROR("Could not enable SAP remote function call support, sapnwrfc sdk libraries and/or headers are missing. Try again using --with-sap-nwrfcsdk")
+		ERROR("Could not enable sap extension, SAP NW RFC SDK libraries and/or headers are missing. Try again using --with-sap-nwrfcsdk")
 	}
 	
-	if (PHP_ZTS == "yes" && CHECK_HEADER_ADD_INCLUDE("pthread.h", "CFLAGS_SAP") &&
-		CHECK_LIB("pthreadVC2.lib", "sap")
-	) {
-		AC_DEFINE("SAPwithPTHREADS", 1);
-	}
+	EXTENSION("sap", "php_sap.c", PHP_SAP_SHARED);
+	AC_DEFINE("HAVE_SAP", 1, "SAP remote function call support");
 }
