@@ -26,18 +26,24 @@
 #define SAP_ME_ARGS(classname, method) arginfo_##classname##_##method
 #define SAP_FE_ARGS(func) arginfo_func_##func
 
-#define SAP_ERROR_SET_RFCFUNCTION(_err, _func, _funclen) do {   \
-    SAPRFC_ERROR_INFO *__err = (_err);                          \
-    const char *__func = (_func);                               \
-    unsigned int __funclen = (_funclen);                        \
-    __err->l_nwsdkfunction = __funclen;                         \
-    memcpy(__err->nwsdkfunction, __func, __funclen);            \
-    memset(__err->nwsdkfunction + __funclen, 0, 1);             \
+#define SAP_ERROR_SET_RFCFUNCTION(_err, _func, _funclen) do {       \
+    SAPRFC_ERROR_INFO *__err = (_err);                              \
+    const char *__func = (_func);                                   \
+    unsigned int __funclen = (_funclen);                            \
+    memset(__err->nwsdkfunction, 0, sizeof(__err->nwsdkfunction));  \
+    __err->l_nwsdkfunction = 0;                                     \
+    if (_func != NULL) {                                            \
+        __err->l_nwsdkfunction = __funclen;                         \
+        memcpy(__err->nwsdkfunction, __func, __funclen);            \
+    }                                                               \
 } while (0);
 
 #define SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, _retval) \
     SAP_ERROR_SET_RFCFUNCTION(_err, _func, strlen(_func));      \
     return _retval
+
+#define SAP_ERR_RETURN_FAILURE(_err, _func) SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, FAILURE)
+#define SAP_ERR_RETURN_NULL(_err, _func) SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, NULL)
 
 #define XtSizeOf(type, member) sizeof(((type *)0)->member)
 
@@ -72,25 +78,15 @@ typedef struct _SAPRFC_PARAMETER_DESC {
 } SAPRFC_PARAMETER_DESC;
 
 typedef struct _sap_function {
-#if PHP_VERSION_ID < 70000
-    zend_object std;
-#endif
     php_sap_connection  *connection;
     php_sap_function    *function_descr;
-#if PHP_VERSION_ID >= 70000
     zend_object         std;
-#endif
 } sap_function;
 
 typedef struct _sap_object {
-#if PHP_VERSION_ID < 70000
-    zend_object         std;
-#endif
     php_sap_connection  *connection;
     zend_class_entry    *func_ce;
-#if PHP_VERSION_ID >= 70000
     zend_object         std;
-#endif
 } sap_object;
 
 ZEND_BEGIN_MODULE_GLOBALS(sap)
@@ -105,7 +101,7 @@ static ZEND_MODULE_GLOBALS_CTOR_D(sap)
 }
 
 PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "On", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
+    STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "Off", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
 PHP_INI_END()
 
 SAPRFC_ERROR_INFO sap_last_error;
@@ -116,25 +112,30 @@ pthread_mutex_t rfc_sapuc_to_utf8_mutex;
 #endif
 
 /** php_sap module procedural functions -- begin **/
+
 PHP_FUNCTION(sap_connect);
 
-ZEND_BEGIN_ARG_INFO(SAP_FE_ARGS(sap_connect), 0)
-    ZEND_ARG_INFO(0, logonParameters)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_connect), IS_RESOURCE, NULL, 0)
+    ZEND_ARG_ARRAY_INFO(0, logonParams, 0)
 ZEND_END_ARG_INFO()
 
 PHP_FUNCTION(sap_last_error);
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_last_error), IS_ARRAY, NULL, 1)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
 PHP_FUNCTION(sap_invoke_function);
 
-ZEND_BEGIN_ARG_INFO(SAP_FE_ARGS(sap_invoke_function), 0)
-    ZEND_ARG_INFO(0, module)
-    ZEND_ARG_INFO(0, connection)
-    ZEND_ARG_INFO(0, imports)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_invoke_function), IS_ARRAY, NULL, 0)
+    ZEND_ARG_TYPE_INFO(0, moduleName, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, connection, IS_RESOURCE, 0)
+    ZEND_ARG_ARRAY_INFO(0, imports, 1)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_sap_module_function_entry[] = {
     PHP_FE(sap_connect,         SAP_FE_ARGS(sap_connect))
-    PHP_FE(sap_last_error,      NULL)
+    PHP_FE(sap_last_error,      SAP_FE_ARGS(sap_last_error))
     PHP_FE(sap_invoke_function, SAP_FE_ARGS(sap_invoke_function))
     PHP_FE_END
 };
@@ -216,54 +217,150 @@ PHP_SAP_API zend_class_entry * php_sap_get_exception_ce(void)
 /* {{{ */
 
 /* SapException */
+
+/* get message key */
 PHP_METHOD(SapException, getMessageKey);
+
+/* returns string */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageKey), IS_STRING, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get message type */
 PHP_METHOD(SapException, getMessageType);
+
+/* returns string :: MSGTY */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageType), IS_STRING, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get message id or class */
 PHP_METHOD(SapException, getMessageId);
+
+/* returns string :: MSGID */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageId), IS_STRING, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get message number */
 PHP_METHOD(SapException, getMessageNumber);
+
+/* returns int :: MSGNO */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageNumber), IS_LONG, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get error's variable 1 */
 PHP_METHOD(SapException, getMessageVar1);
+
+/* returns string|null :: MSGV */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar1), IS_STRING, NULL, 1)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get error's variable 2 */
 PHP_METHOD(SapException, getMessageVar2);
+
+/* returns string|null :: MSGV */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar2), IS_STRING, NULL, 1)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get error's variable 3 */
 PHP_METHOD(SapException, getMessageVar3);
+
+/* returns string|null :: MSGV */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar3), IS_STRING, NULL, 1)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get error's variable 4 */
 PHP_METHOD(SapException, getMessageVar4);
+
+/* returns string|null :: MSGV */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar4), IS_STRING, NULL, 1)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* get the internal sdk function the error came from */
 PHP_METHOD(SapException, getNwSdkFunction);
 
+/* returns string|null :: function's name */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getNwSdkFunction), IS_STRING, NULL, 1)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
 const zend_function_entry sap_exception_fe[] = {
-    PHP_ME(SapException, getMessageKey,     NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getMessageType,    NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getMessageId,      NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getMessageNumber,  NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getMessageVar1,    NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getMessageVar2,    NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getMessageVar3,    NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getMessageVar4,    NULL,   ZEND_ACC_PUBLIC)
-    PHP_ME(SapException, getNwSdkFunction,  NULL,   ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageKey,     SAP_ME_ARGS(SapException, getMessageKey),       ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageType,    SAP_ME_ARGS(SapException, getMessageType),      ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageId,      SAP_ME_ARGS(SapException, getMessageId),        ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageNumber,  SAP_ME_ARGS(SapException, getMessageNumber),    ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageVar1,    SAP_ME_ARGS(SapException, getMessageVar1),      ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageVar2,    SAP_ME_ARGS(SapException, getMessageVar2),      ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageVar3,    SAP_ME_ARGS(SapException, getMessageVar3),      ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getMessageVar4,    SAP_ME_ARGS(SapException, getMessageVar4),      ZEND_ACC_PUBLIC)
+    PHP_ME(SapException, getNwSdkFunction,  SAP_ME_ARGS(SapException, getNwSdkFunction),    ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
 /* Sap */
+
+/* Sap constructor */
 PHP_METHOD(Sap, __construct);
 
+/* return void, throws SapCommunicationException */
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, __construct), 0)
-    ZEND_ARG_INFO(0, logonParameters)
+    /* array: logon parameters */
+    ZEND_ARG_ARRAY_INFO(0, logonParameters, 0)
 ZEND_END_ARG_INFO()
 
+/* sets the default class this connection uses for fetching remote function objects */
 PHP_METHOD(Sap, setFunctionClass);
 
+/* return void */
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, setFunctionClass), 0)
-    ZEND_ARG_INFO(0, classname)
+    /* string: the class name derived from SapFunction */
+    ZEND_ARG_TYPE_INFO(0, className, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+/* get the default class this connection uses for fetching remote function objects */
+PHP_METHOD(Sap, getFunctionClass);
+
+/* return string: class name */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getFunctionClass), IS_STRING, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* directly invokes a remote function on the backend system */
 PHP_METHOD(Sap, call);
 
-ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, call), 0)
-    ZEND_ARG_INFO(0, name)
-    ZEND_ARG_INFO(0, imports)
+/* return array: EXPORT/CHANGING/TABLE parameters, throws SapException */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, call), IS_ARRAY, NULL, 0)
+    /* remote function name to be invoked, string, not null */
+    ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
+    /* import parameters as array, optional, can be null */
+    ZEND_ARG_ARRAY_INFO(0, imports, 1)
 ZEND_END_ARG_INFO()
 
+/* fetches a remote function description from the backend */
 PHP_METHOD(Sap, fetchFunction);
 
-ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, fetchFunction), 0)
+/* return SapFunction: a "ready to call" SapFunction object, throws SapException */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(SAP_ME_ARGS(Sap, fetchFunction), 0, 1, IS_OBJECT, "SapFunction", 0)
+    /* string|SapFunction: remote function's name or a SapFunction object */
     ZEND_ARG_INFO(0, name)
-    ZEND_ARG_INFO(0, moduleClass)
+    /* string|null: a class name derived from SapFunction to create the return object */
+    ZEND_ARG_TYPE_INFO(0, moduleClass, IS_STRING, 1)
+    /* array|null: constructor arguments, used in conjuction with the second parameter */
+    ZEND_ARG_ARRAY_INFO(0, ctor_args, 1)
+ZEND_END_ARG_INFO()
+
+/* get connection attributes */
+PHP_METHOD(Sap, getAttributes);
+
+/* return array: connection attributes, throws SapException */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getAttributes), IS_ARRAY, NULL, 0)
+    /* no arguments */
 ZEND_END_ARG_INFO()
 
 const zend_function_entry sap_fe_Sap[] = {
@@ -271,39 +368,56 @@ const zend_function_entry sap_fe_Sap[] = {
     PHP_ME(Sap, setFunctionClass,   SAP_ME_ARGS(Sap, setFunctionClass), ZEND_ACC_PUBLIC)
     PHP_ME(Sap, call,               SAP_ME_ARGS(Sap, call),             ZEND_ACC_PUBLIC)
     PHP_ME(Sap, fetchFunction,      SAP_ME_ARGS(Sap, fetchFunction),    ZEND_ACC_PUBLIC)
+    PHP_ME(Sap, getAttributes,      SAP_ME_ARGS(Sap, getAttributes),    ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
 /* SapFunction */
+
+/* get remote function's name */
 PHP_METHOD(SapFunction, getName);
 
+/* return string: remote function's name */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getName), IS_STRING, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* sets a parameter active/inactive */
 PHP_METHOD(SapFunction, setActive);
 
-ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapFunction, setActive), 0)
+/* return bool: true on success or false on failure, throws UnexpectedValueException */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, setActive), _IS_BOOL, NULL, 0)
+    /* string: parameter name */
     ZEND_ARG_INFO(0, param)
+    /* bool|null: true for active, false for inactive, null for default state */
     ZEND_ARG_INFO(0, isActive)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, __invoke);
 
-ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapFunction, __invoke), 0)
-    ZEND_ARG_INFO(0, args)
-    ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, __invoke), IS_ARRAY, NULL, 0)
+    ZEND_ARG_ARRAY_INFO(0, imports, 1)
+    ZEND_ARG_TYPE_INFO(0, rtrim, _IS_BOOL, 1)
+ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, getParameters);
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getParameters), IS_ARRAY, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
 PHP_METHOD(SapFunction, getTypeName);
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getTypeName), IS_STRING, NULL, 1)
+    ZEND_ARG_TYPE_INFO(0, param, IS_STRING, 0)
+ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, __toString);
 
-ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapFunction, getTypeName), 0)
-    ZEND_ARG_INFO(0, param)
-ZEND_END_ARG_INFO()
-
 const zend_function_entry sap_fe_SapFunction[] = {
     PHP_ME(SapFunction, __invoke,       SAP_ME_ARGS(SapFunction, __invoke),     ZEND_ACC_PUBLIC)
-    PHP_ME(SapFunction, getName,        NULL,                                   ZEND_ACC_PUBLIC)
-    PHP_ME(SapFunction, getParameters,  NULL,                                   ZEND_ACC_PUBLIC)
+    PHP_ME(SapFunction, getName,        SAP_ME_ARGS(SapFunction, getName),      ZEND_ACC_PUBLIC)
+    PHP_ME(SapFunction, getParameters,  SAP_ME_ARGS(SapFunction, getParameters),ZEND_ACC_PUBLIC)
     PHP_ME(SapFunction, setActive,      SAP_ME_ARGS(SapFunction, setActive),    ZEND_ACC_PUBLIC)
     PHP_ME(SapFunction, getTypeName,    SAP_ME_ARGS(SapFunction, getTypeName),  ZEND_ACC_PUBLIC)
     PHP_ME(SapFunction, __toString,     NULL,                                   ZEND_ACC_PUBLIC)
@@ -313,18 +427,22 @@ const zend_function_entry sap_fe_SapFunction[] = {
 /* SapRfcReadTable */
 PHP_METHOD(SapRfcReadTable, getName);
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, getName), IS_STRING, NULL, 0)
+    /* no arguments */
+ZEND_END_ARG_INFO()
+
 PHP_METHOD(SapRfcReadTable, select);
 
-ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(SapRfcReadTable, select), 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, select), IS_ARRAY, NULL, 0)
     ZEND_ARG_INFO(0, fields)
-    ZEND_ARG_INFO(0, table)
-    ZEND_ARG_INFO(0, options)
-    ZEND_ARG_INFO(0, rowcount)
-    ZEND_ARG_INFO(0, offset)
+    ZEND_ARG_TYPE_INFO(0, table, IS_STRING, 0)
+    ZEND_ARG_ARRAY_INFO(0, options, 1)
+    ZEND_ARG_TYPE_INFO(0, limit, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO(0, offset, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
 const zend_function_entry sap_fe_SapRfcReadTable[] = {
-    PHP_ME(SapRfcReadTable, getName,    NULL,                                   ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
+    PHP_ME(SapRfcReadTable, getName,    SAP_ME_ARGS(SapRfcReadTable, getName),  ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
     PHP_ME(SapRfcReadTable, select,     SAP_ME_ARGS(SapRfcReadTable, select),   ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
@@ -418,7 +536,7 @@ static int utf8_to_sapuc_l(char *str, int len, SAP_UC **uc, unsigned int *uc_len
     unsigned int sapuc_num_chars = 0;
     RFC_RC res;
 
-try_again:
+    try_again:
 
 #if SAPwithPTHREADS
     /* Avoid concurrent access to the RfcSAPUCToUTF8 function */
@@ -465,7 +583,7 @@ try_again:
                 efree(retval);
             }
 
-            SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcUTF8ToSAPUC", FAILURE);
+            SAP_ERR_RETURN_FAILURE(err, "RfcUTF8ToSAPUC");
     }
 }
 
@@ -526,7 +644,7 @@ try_again:
                 efree(utf8);
             }
 
-            SAP_ERROR_SET_FUNCTION_AND_RETURN(err, "RfcSAPUCToUTF8", FAILURE);
+            SAP_ERR_RETURN_FAILURE(err, "RfcUTF8ToSAPUC");
         }
     }
 }
@@ -1932,6 +2050,15 @@ static int sap_function_invoke(php_sap_function *function, php_sap_connection *c
     return SUCCESS;
 }
 
+/**
+ * Creates a connection to a R/3 backend system
+ * 
+ * @param array $logonParameters
+ * 
+ * @return resource
+ *
+ * @throws SapCommunicationException
+ */
 PHP_FUNCTION(sap_connect)
 {
     int res;
@@ -1957,6 +2084,11 @@ PHP_FUNCTION(sap_connect)
     sap_make_resource(return_value, crsrc, le_php_sap_connection);
 }
 
+/**
+ * Get the latest nw sdk error
+ *
+ * @return array|null
+ */
 PHP_FUNCTION(sap_last_error)
 {
     char *key, *msgType, *msgClass, *msgNumber, *msgv1, *msgv2, *msgv3, *msgv4, *message;
@@ -2057,6 +2189,17 @@ PHP_FUNCTION(sap_last_error)
     }
 }
 
+/**
+ * Invokes a remote function module to a backend system
+ *
+ * @param string        $name       remote function module's name
+ * @param resource      $connection SAP RFC connection
+ * @param array|null    $imports    IMPORT/CHANGING/TABLE parameters
+ *
+ * @return array|null               EXPORT/CHANGING/TABLE parameters
+ *
+ * @throws SapException
+ */
 PHP_FUNCTION(sap_invoke_function)
 {
     int res;
