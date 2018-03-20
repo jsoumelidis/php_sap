@@ -4,6 +4,8 @@ Invoke STFC_STRUCTURE
 <?php
 $logon = include 'config.inc';
 
+date_default_timezone_set("Europe/Athens");
+
 $struct = [
 	'RFCFLOAT' => 1.056725,
 	'RFCCHAR1' => '!',
