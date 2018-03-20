@@ -76,6 +76,16 @@ if test "$PHP_SAP" != "no"; then
   
   AC_DEFINE(HAVE_SAP, 1, [SAP remote function call support])
   
+  if test "$PHP_ZTS" == "yes"; then
+    AC_MSG_CHECKING([for pthread.h])
+    AC_CHECK_HEADER([pthread.h], [
+      AC_DEFINE(SAPwithPTHREADS, 1, [Compile SAP extension with pthreads support])
+      AC_MSG_RESULT(yes. Pthreads support for SAP enabled)
+    ], [
+      AC_MSG_RESULT(no. Pthreads support for SAP not enabled)
+    ])
+  fi
+
   PHP_NEW_EXTENSION(sap, php_sap.c, $ext_shared)
 
   PHP_ADD_BUILD_DIR($SAPNWRFCSDK/lib)

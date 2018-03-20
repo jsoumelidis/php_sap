@@ -101,7 +101,7 @@ ZEND_DECLARE_MODULE_GLOBALS(sap)
 
 static ZEND_MODULE_GLOBALS_CTOR_D(sap)
 {
-    PHP_SAP_GLOBALS(rtrim_export_strings) = 1;
+    sap_globals->rtrim_export_strings = 1;
 }
 
 PHP_INI_BEGIN()
