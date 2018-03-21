@@ -32,19 +32,20 @@ class Sap
 	 *
 	 * @throws SapException function not found or other error occurs
 	 */
-	public function fetchFunction($function, $class = null, array $ctor_args = null) : SapFunction {}
+	public function fetchFunction($function, string $class = null, array $ctor_args = null) : SapFunction {}
 
 	/**
 	 * Instant call of a Remote Function Module.
 	 *
 	 * @param string $function Function's name
-	 * @param array $args import/changing/tables parameters
+	 * @param array|null $args import/changing/tables parameters
+	 * @param bool|null $rtrim right-trim string export fields, if null the global .ini setting will be used
 	 *
 	 * @return array Function's export/changing/tables parameters
 	 
 	 * @throws SapException function not found or other error occurs
 	 */
-	public function call(string $function, array $args) : array {}
+	public function call(string $function, array $args = null, bool $rtrim = null) : array {}
 	
 	/**
 	 * Sets the default SapFunction class for this Sap Object when fetching remote functions.
@@ -54,4 +55,9 @@ class Sap
 	 * @return void
 	 */
 	public function setFunctionClass(string $class) : Sap {}
+	
+	/**
+	 * Get connection attributes
+	 */
+	public function getAttributes(): array {}
 }

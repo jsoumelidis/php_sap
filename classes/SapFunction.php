@@ -16,12 +16,13 @@ class SapFunction
 	 * $exports = $sapFunction->__invoke($imports) is the same as $exports = $sapFunction($imports).
 	 *
 	 * @param array $args import parameters
+	 * @param bool|null $rtrim right-trim string fields, if null the global .ini setting will be used
 	 *
 	 * @return array export parameters
 	 *
 	 * @throws SapException
 	 */
-	public function __invoke(array $imports = []) : array {}
+	public function __invoke(array $imports = [], bool $rtrim = null) : array {}
 
 	/**
 	 * Set's a parameter active/inactive. If a parameter is set "inactive" it's data

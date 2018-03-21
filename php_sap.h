@@ -39,11 +39,9 @@ typedef struct _php_sap_function    {
 
 PHP_SAP_API zend_class_entry*       php_sap_get_sap_ce(void);
 PHP_SAP_API zend_object_handlers*   php_sap_get_sap_handlers(void);
-PHP_SAP_API php_sap_connection*     php_sap_get_connection(zval *zsap TSRMLS_DC);
 
 PHP_SAP_API zend_class_entry*       php_sap_get_function_ce(void);
 PHP_SAP_API zend_object_handlers*   php_sap_get_function_handlers(void);
-PHP_SAP_API php_sap_function*       php_sap_get_function_descr(zval *zfunction TSRMLS_DC);
 
 PHP_SAP_API zend_class_entry*       php_sap_get_exception_ce(void);
 
