@@ -16,7 +16,7 @@
 #endif
 
 #define PHP_SAP_VERSION "2.0"
-#define PHP_SAP_CONNECTION_RES_NAME "SAP R/3 Connection"
+#define PHP_SAP_CONNECTION_RES_NAME "SAP Connection"
 
 #ifdef PHP_WIN32
 #   define PHP_SAP_API __declspec(dllexport)
@@ -28,7 +28,6 @@ extern zend_module_entry sap_module_entry;
 
 typedef struct _php_sap_connection {
     RFC_CONNECTION_HANDLE   handle;
-    HashTable*              lparams;
     unsigned int            refCount;
 } php_sap_connection;
 

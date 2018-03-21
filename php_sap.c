@@ -37,7 +37,7 @@
     unsigned int __funclen = (_funclen);                            \
     memset(__err->nwsdkfunction, 0, sizeof(__err->nwsdkfunction));  \
     __err->l_nwsdkfunction = 0;                                     \
-    if (_func != NULL) {                                            \
+    if (__func != NULL) {                                           \
         __err->l_nwsdkfunction = __funclen;                         \
         memcpy(__err->nwsdkfunction, __func, __funclen);            \
     }                                                               \
@@ -566,7 +566,7 @@ static int utf8_to_sapuc_l(char *str, int len, SAP_UC **uc, unsigned int *uc_len
         case RFC_OK:
             if (NULL == retval) {
                 /* retval will be NULL if str == "", so we have to allocate an empty SAP_UC string */
-                retval = mallocU(0);
+                retval = emalloc(0);
             }
 
             *uc = retval;
@@ -711,28 +711,6 @@ int format_datetime_object(zval *object, zval *return_value, const char *format)
     return result;
 }
 
-static inline zval sap_create_exception(zend_class_entry *ce, int code, char *format, ...)
-{
-    va_list args;
-    char *message;
-    zval ex;
-
-    va_start(args, format);
-    vspprintf(&message, 0, format, args);
-    va_end(args);
-
-    if (NULL == ce) {
-        ce = zend_default_exception;
-    }
-
-    object_init_ex(&ex, ce);
-
-    zend_update_property_string(zend_default_exception, &ex, "message", sizeof("message") - 1, message);
-    zend_update_property_long(zend_default_exception, &ex, "code", sizeof("code") - 1, code);
-
-    return ex;
-}
-
 static inline void sap_create_error(SAPRFC_ERROR_INFO *err, const char *key, RFC_RC code, char *format, ...)
 {
     va_list args;
@@ -812,7 +790,7 @@ static inline zval sap_error_to_exception(SAPRFC_ERROR_INFO *err)
     if (SUCCESS == sapuc_to_utf8(err->err.key, &key, &keyLen, &e)) {
         zend_update_property_stringl(sap_ce_SapException, &exception, "KEY", sizeof("KEY") - 1, key, keyLen);
     }
-
+    
     if (err->l_nwsdkfunction > 0) {
         zend_update_property_stringl(sap_ce_SapException, &exception, "nwsdkfunction", sizeof("nwsdkfunction") - 1, err->nwsdkfunction, err->l_nwsdkfunction);
     }
@@ -875,9 +853,7 @@ static HashTable * sap_function_description_to_array(RFC_FUNCTION_DESC_HANDLE fd
 
 static php_sap_connection * sap_create_connection_resource(void)
 {
-    php_sap_connection *retval;
-
-    retval = ecalloc(1, sizeof(php_sap_connection));
+    php_sap_connection *retval = ecalloc(1, sizeof(php_sap_connection));
 
     return retval;
 }
@@ -891,9 +867,6 @@ static void php_sap_connection_ptr_dtor(php_sap_connection *connection)
         if (NULL != connection->handle) {
             RfcCloseConnection(connection->handle, &e);
         }
-
-        zend_hash_destroy(connection->lparams);
-        FREE_HASHTABLE(connection->lparams);
 
         efree(connection);
     }
@@ -1116,7 +1089,7 @@ static int sap_connection_open(php_sap_connection *connection, HashTable *lparam
     if (NULL == connection->handle) {
         SAP_ERR_RETURN_FAILURE(err, "RfcOpenConnection");
     }
-
+    
     return SUCCESS;
 }
 
@@ -1853,10 +1826,7 @@ PHP_FUNCTION(sap_connect)
 
     if (zend_hash_num_elements(Z_ARRVAL_P(logonParameters)) == 0)
     {
-        zval ex = sap_create_exception(php_sap_invalid_args_exception, -1, "Logon parameters array must not be empty");
-
-        zend_throw_exception_object(&ex);
-
+        zend_throw_exception_ex(spl_ce_InvalidArgumentException, -1, "Logon parameters array must not be empty");
         return;
     }
 
@@ -1906,11 +1876,13 @@ PHP_FUNCTION(sap_invoke_function)
         return;
     }
 
-    if (NULL == (crsrc = zend_fetch_resource(Z_RES_P(zcrsrc), PHP_SAP_CONNECTION_RES_NAME, le_php_sap_connection))) {
-        zval ex = sap_create_exception(php_sap_invalid_args_exception, -1, "Invalid connection resource");
-        zend_throw_exception_object(&ex);
+    
+    if (Z_RES_TYPE_P(zcrsrc) != le_php_sap_connection) {
+        zend_throw_exception_ex(spl_ce_InvalidArgumentException, -1, "Invalid connection. A resource of type %s is required", PHP_SAP_CONNECTION_RES_NAME);
         return;
     }
+
+    crsrc = zend_fetch_resource(Z_RES_P(zcrsrc), PHP_SAP_CONNECTION_RES_NAME, le_php_sap_connection);
 
     if (NULL == (frsrc = sap_fetch_function(name, namelen, crsrc, &err))) {
         zval ex = sap_error_to_exception(&err);
@@ -2062,8 +2034,7 @@ PHP_METHOD(Sap, call)
     intern = sap_get_sap_object(getThis());
 
     if (NULL == intern->connection) {
-        zval ex = sap_create_exception(spl_ce_LogicException, -1, "There is no connection to a SAP R/3 system");
-        zend_throw_exception_object(&ex);
+        zend_throw_exception_ex(spl_ce_LogicException, -1, "There is no connection to a SAP R/3 system");
         return;
     }
 
@@ -2148,14 +2119,12 @@ PHP_METHOD(Sap, fetchFunction)
                 break;
             }
         default: {
-            zval ex = sap_create_exception(
-                php_sap_invalid_args_exception, 
-                -1, 
+            zend_throw_exception_ex(
+                spl_ce_InvalidArgumentException,
+                -1,
                 "Argument 1 of Sap::fetchFunction() must be a string or a SapFunction object (%s given)",
                 zend_get_type_by_const(Z_TYPE_P(zfunction))
             );
-
-            zend_throw_exception_object(&ex);
             return;
         }
     }
@@ -2450,8 +2419,7 @@ PHP_METHOD(SapFunction, __invoke)
     intern = sap_get_function_object(getThis());
 
     if (NULL == intern->function_descr || NULL == intern->connection) {
-        zval ex = sap_create_exception(spl_ce_LogicException, -1, "Function's descriptions has not been fetced");
-        zend_throw_exception_object(&ex);
+        zend_throw_exception_ex(spl_ce_LogicException, -1, "Function's description has not been fetced");
         return;
     }
 
@@ -2479,8 +2447,7 @@ PHP_METHOD(SapFunction, getParameters)
     intern = sap_get_function_object(getThis());
 
     if (!intern->function_descr) {
-        zval ex = sap_create_exception(spl_ce_LogicException, -1, "Function's descriptions has not been fetced");
-        zend_throw_exception_object(&ex);
+        zend_throw_exception_ex(spl_ce_LogicException, -1, "Function's description has not been fetced");
         return;
     }
 
@@ -2513,14 +2480,12 @@ PHP_METHOD(SapFunction, getTypeName)
     intern = sap_get_function_object(getThis());
 
     if (!intern->function_descr) {
-        zval ex = sap_create_exception(spl_ce_LogicException, -1, "Function's descriptions has not been fetced");
-        zend_throw_exception_object(&ex);
+        zend_throw_exception_ex(spl_ce_LogicException, -1, "Function's descriptions has not been fetced");
         return;
     }
 
     if (NULL == (sp = zend_hash_find_ptr(intern->function_descr->params, pname))) {
-        zval ex = sap_create_exception(spl_ce_LogicException, -1, "Parameter not found");
-        zend_throw_exception_object(&ex);
+        zend_throw_exception_ex(spl_ce_LogicException, -1, "Parameter not found");
         return;
     }
 
