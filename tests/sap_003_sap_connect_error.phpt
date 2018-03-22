@@ -1,5 +1,5 @@
 --TEST--
-sap_connect() basic behavior
+sap_connect() error behavior
 --FILE--
 <?php
 /* test accepts array */

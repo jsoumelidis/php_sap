@@ -1,5 +1,5 @@
 --TEST--
-sap_invoke_function() invocation
+sap_invoke_function() basic behavior
 --SKIPIF--
 <?php
 $config = include 'config.inc';
@@ -32,9 +32,30 @@ var_dump($exports);
 $exports = sap_invoke_function('STFC_CONNECTION', $c, $imports, true);
 var_dump($exports);
 
+ini_set('sap.rtrim_export_strings', 'Off');
+/* test uses default sap.rtrim_export_strings setting when argument 4th not provided (#1) */
+$exports = sap_invoke_function('STFC_CONNECTION', $c, $imports);
+var_dump($exports);
+
+ini_set('sap.rtrim_export_strings', 'On');
+/* test uses default sap.rtrim_export_strings setting when argument 4th not provided (#2) */
+$exports = sap_invoke_function('STFC_CONNECTION', $c, $imports);
+var_dump($exports);
 ?>
 --EXPECTF--
 array(0) {
+}
+array(2) {
+  ["ECHOTEXT"]=>
+  string(%d) "T€st invoke                                                                                                                                                                                                                                                    "
+  ["RESPTEXT"]=>
+  string(%d) "%s"
+}
+array(2) {
+  ["ECHOTEXT"]=>
+  string(13) "T€st invoke"
+  ["RESPTEXT"]=>
+  string(%d) "%s"
 }
 array(2) {
   ["ECHOTEXT"]=>

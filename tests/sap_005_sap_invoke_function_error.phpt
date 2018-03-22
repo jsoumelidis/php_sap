@@ -1,5 +1,5 @@
 --TEST--
-sap_invoke_function basic behavior
+sap_invoke_function() error behavior
 --FILE--
 <?php
 /* test accepts string as 1st argument */
@@ -21,7 +21,7 @@ catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/* test accepts array or null as 3rd argument */
+/* test accepts array as 3rd argument */
 try { $r = sap_invoke_function('DUMMY_RFC', $rsrc, 'invalid'); }
 catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;
@@ -31,4 +31,4 @@ catch (TypeError $e) {
 Argument 1 passed to sap_invoke_function() must be of the type string, array given
 Argument 2 passed to sap_invoke_function() must be of the type resource, array given
 Argument 2 passed to sap_invoke_function() must be a resource of type SAP Connection
-Argument 3 passed to sap_invoke_function() must be of the type array or null, string given
+Argument 3 passed to sap_invoke_function() must be of the type array, string given

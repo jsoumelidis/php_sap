@@ -1,5 +1,5 @@
 --TEST--
-Sap::fetchFunction()
+Sap::fetchFunction() basic behavior
 --SKIPIF--
 <?php
 $config = include 'config.inc';
@@ -60,16 +60,6 @@ $f = $s->fetchFunction('RFC_PING', RfcPing::class, ['test']);
 var_dump(get_class($f));
 var_dump($f->getArg());
 
-/** test fetchFunction returns null if invalid 2nd argument provided */
-$f = $s->fetchFunction('RFC_PING', 'invalid');
-var_dump(gettype($f));
-
-/** test fetchFunction throws SapException if remote function not found */
-try { $f = $s->fetchFunction('SOME_INVALID_RFC_NAME'); }
-catch (SapException $e) {
-	var_dump(get_class($e));
-}
-
 /** test fetchFunction accepts SapFunction object as 1st argument and returns the same object */
 $func = new RfcPing('arg');
 $f = $s->fetchFunction($func);
@@ -78,16 +68,12 @@ var_dump($f === $func);
 /** test fetchFunction returns callable object */
 var_dump(gettype($f()));
 ?>
---EXPECTF--
+--EXPECT--
 string(11) "SapFunction"
 string(8) "RFC_PING"
 string(17) "CustomSapFunction"
 string(11) "SapFunction"
 string(7) "RfcPing"
 string(4) "test"
-
-Warning: Sap::fetchFunction() expects parameter 2 to be a class name derived from SapFunction, 'invalid' given in %s on line %d
-string(4) "NULL"
-string(12) "SapException"
 bool(true)
 string(5) "array"

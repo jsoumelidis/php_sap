@@ -2198,7 +2198,7 @@ PHP_METHOD(Sap, fetchFunction)
             }
         default: {
             zend_throw_exception_ex(
-                spl_ce_InvalidArgumentException,
+                zend_ce_type_error,
                 -1,
                 "Argument 1 of Sap::fetchFunction() must be a string or a SapFunction object (%s given)",
                 zend_get_type_by_const(Z_TYPE_P(zfunction))
