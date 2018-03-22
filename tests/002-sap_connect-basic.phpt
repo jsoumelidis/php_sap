@@ -1,19 +1,26 @@
 --TEST--
-sap_connect basic behavior
+sap_connect() basic behavior
 --FILE--
 <?php
+/* test accepts array */
+try { $c = sap_connect('string'); }
+catch (TypeError $e) {
+	echo $e->getMessage(), PHP_EOL;
+}
+
 /* test does not accept empty array */
 try { $c = sap_connect([]); }
 catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/* test throws SapException on invalid connection arguments */
+/* test throws SapConnectionException on invalid connection arguments */
 try { $c = sap_connect(['invalid' => 'invalid']); }
-catch (SapException $e) {
+catch (SapConnectionException $e) {
 	echo get_class($e), PHP_EOL;
 }
 ?>
---EXPECTF--
+--EXPECT--
+Argument 1 passed to sap_connect() must be of the type array, string given
 Logon parameters array must not be empty
-SapException
+SapConnectionException

@@ -15,16 +15,20 @@ catch (TypeError $e) {
 }
 
 /* test accepts only resource of type "SAP Connection" as 2nd argument */
-$r = fopen("php://input", "r");
-try { $r = sap_invoke_function('DUMMY_RFC', $r); }
+$rsrc = tmpfile();
+try { $r = sap_invoke_function('DUMMY_RFC', $rsrc); }
 catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
-finally {
-	fclose($r);
+
+/* test accepts array or null as 3rd argument */
+try { $r = sap_invoke_function('DUMMY_RFC', $rsrc, 'invalid'); }
+catch (TypeError $e) {
+	echo $e->getMessage(), PHP_EOL;
 }
 ?>
 --EXPECT--
 Argument 1 passed to sap_invoke_function() must be of the type string, array given
 Argument 2 passed to sap_invoke_function() must be of the type resource, array given
-Invalid connection. A resource of type SAP Connection is required
+Argument 2 passed to sap_invoke_function() must be a resource of type SAP Connection
+Argument 3 passed to sap_invoke_function() must be of the type array or null, string given

@@ -50,13 +50,6 @@
 #define SAP_ERR_RETURN_FAILURE(_err, _func) SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, FAILURE)
 #define SAP_ERR_RETURN_NULL(_err, _func) SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, NULL)
 
-#define SAP_THROW_SAPRFC_ERROR_EXCEPTION(_err) {    \
-    SAPRFC_ERROR_INFO *__err = (_err);              \
-    zval _ex;                                       \
-    sap_error_to_exception(__err, &_ex);            \
-    zend_throw_exception_object(&_ex);              \
-}
-
 #define XtSizeOf(type, member) sizeof(((type *)0)->member)
 
 typedef enum _TRIM_TYPE {
@@ -103,7 +96,7 @@ ZEND_DECLARE_MODULE_GLOBALS(sap)
 
 static ZEND_MODULE_GLOBALS_CTOR_D(sap)
 {
-    sap_globals->rtrim_export_strings = 1;
+    sap_globals->rtrim_export_strings = 0;
 }
 
 PHP_INI_BEGIN()
@@ -129,6 +122,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_invoke_function), IS_ARRAY,
     ZEND_ARG_TYPE_INFO(0, moduleName, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO(0, connection, IS_RESOURCE, 0)
     ZEND_ARG_ARRAY_INFO(0, imports, 1)
+    ZEND_ARG_TYPE_INFO(0, rtrim, _IS_BOOL, 1)
 ZEND_END_ARG_INFO()
 
 zend_function_entry php_sap_module_function_entry[] = {
@@ -159,6 +153,7 @@ ZEND_GET_MODULE(sap)
 int le_php_sap_connection;
 
 zend_class_entry * sap_ce_SapException;
+zend_class_entry * sap_ce_SapConnectionException;
 zend_class_entry * sap_ce_Sap;
 zend_class_entry * sap_ce_SapFunction;
 zend_class_entry * sap_ce_SapRfcReadTable;
@@ -300,6 +295,11 @@ const zend_function_entry sap_exception_fe[] = {
     PHP_FE_END
 };
 
+/* SapConnectionException */
+const zend_function_entry sap_connection_exception_fe[] = {
+    PHP_FE_END
+};
+
 /* Sap */
 
 /* Sap constructor */
@@ -308,16 +308,15 @@ PHP_METHOD(Sap, __construct);
 /* return void, throws SapCommunicationException */
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, __construct), 0)
     /* array: logon parameters */
-    ZEND_ARG_ARRAY_INFO(0, logonParameters, 0)
+    ZEND_ARG_ARRAY_INFO(0, logonParameters, 1)
 ZEND_END_ARG_INFO()
 
-/* sets the default class this connection uses for fetching remote function objects */
-PHP_METHOD(Sap, setFunctionClass);
+PHP_METHOD(Sap, connect);
 
-/* return void */
-ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, setFunctionClass), 0)
-    /* string: the class name derived from SapFunction */
-    ZEND_ARG_TYPE_INFO(0, className, IS_STRING, 0)
+/* return void, throws SapCommunicationException */
+ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, connect), 0)
+    /* array: logon parameters */
+    ZEND_ARG_ARRAY_INFO(0, logonParameters, 0)
 ZEND_END_ARG_INFO()
 
 /* get the default class this connection uses for fetching remote function objects */
@@ -326,6 +325,15 @@ PHP_METHOD(Sap, getFunctionClass);
 /* return string: class name */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getFunctionClass), IS_STRING, NULL, 0)
     /* no arguments */
+ZEND_END_ARG_INFO()
+
+/* sets the default class this connection uses for fetching remote function objects */
+PHP_METHOD(Sap, setFunctionClass);
+
+/* return void */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, setFunctionClass), IS_NULL, NULL, 1)
+    /* string: the class name derived from SapFunction */
+    ZEND_ARG_TYPE_INFO(0, className, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 /* directly invokes a remote function on the backend system */
@@ -337,6 +345,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, call), IS_ARRAY, NULL, 0)
     ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
     /* import parameters as array, optional, can be null */
     ZEND_ARG_ARRAY_INFO(0, imports, 1)
+    ZEND_ARG_TYPE_INFO(0, rtrim, _IS_BOOL, 1)
 ZEND_END_ARG_INFO()
 
 /* fetches a remote function description from the backend */
@@ -347,9 +356,9 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(SAP_ME_ARGS(Sap, fetchFunction), 0, 1, I
     /* string|SapFunction: remote function's name or a SapFunction object */
     ZEND_ARG_INFO(0, name)
     /* string|null: a class name derived from SapFunction to create the return object */
-    ZEND_ARG_TYPE_INFO(0, moduleClass, IS_STRING, 1)
+    ZEND_ARG_TYPE_INFO(0, moduleClass, IS_STRING, 0)
     /* array|null: constructor arguments, used in conjuction with the second parameter */
-    ZEND_ARG_ARRAY_INFO(0, ctor_args, 1)
+    ZEND_ARG_ARRAY_INFO(0, ctor_args, 0)
 ZEND_END_ARG_INFO()
 
 /* get connection attributes */
@@ -362,6 +371,8 @@ ZEND_END_ARG_INFO()
 
 const zend_function_entry sap_fe_Sap[] = {
     PHP_ME(Sap, __construct,        SAP_ME_ARGS(Sap, __construct),      ZEND_ACC_PUBLIC)
+    PHP_ME(Sap, connect,            SAP_ME_ARGS(Sap, connect),          ZEND_ACC_PUBLIC)
+    PHP_ME(Sap, getFunctionClass,   SAP_ME_ARGS(Sap, getFunctionClass), ZEND_ACC_PUBLIC)
     PHP_ME(Sap, setFunctionClass,   SAP_ME_ARGS(Sap, setFunctionClass), ZEND_ACC_PUBLIC)
     PHP_ME(Sap, call,               SAP_ME_ARGS(Sap, call),             ZEND_ACC_PUBLIC)
     PHP_ME(Sap, fetchFunction,      SAP_ME_ARGS(Sap, fetchFunction),    ZEND_ACC_PUBLIC)
@@ -746,14 +757,18 @@ static inline void sap_create_error(SAPRFC_ERROR_INFO *err, const char *key, RFC
     err->err.code = code;
 }
 
-static inline zval sap_error_to_exception(SAPRFC_ERROR_INFO *err)
+static inline zval sap_error_to_exception(SAPRFC_ERROR_INFO *err, zend_class_entry *ce)
 {
     zval exception;
     char *key, *msgType, *msgId, *msgNumber, *msgv1, *msgv2, *msgv3, *msgv4, *message;
     int keyLen, msgTypeLen, msgIdLen, msgNumberLen, msgv1Len, msgv2Len, msgv3Len, msgv4Len, messageLen;
     SAPRFC_ERROR_INFO e;
 
-    object_init_ex(&exception, sap_ce_SapException);
+    if (NULL == ce) {
+        ce = sap_ce_SapException;
+    }
+
+    object_init_ex(&exception, ce);
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgType, &msgType, &msgTypeLen, &e)) {
         zend_update_property_stringl(sap_ce_SapException, &exception, "MSGTY", sizeof("MSGTY") - 1, msgType, msgTypeLen);
@@ -930,6 +945,7 @@ static zend_object * sap_object_create_object_ex(zend_class_entry *ce, sap_objec
 
     intern = *sap = ecalloc(1, sz);
 
+    intern->connection = NULL;
     intern->func_ce = sap_ce_SapFunction;
 
     zend_object_std_init(&intern->std, ce);
@@ -989,6 +1005,8 @@ static zend_object * sap_function_create_object_ex(zend_class_entry *ce, sap_fun
     zend_object_std_init(&intern->std, ce);
     object_properties_init(&intern->std, ce);
 
+    intern->function_descr = NULL;
+    intern->connection = NULL;
     intern->std.handlers = &sap_function_handlers;
 
     return &intern->std;
@@ -1816,16 +1834,15 @@ static int sap_function_invoke(php_sap_function *function, php_sap_connection *c
  */
 PHP_FUNCTION(sap_connect)
 {
-    zval *logonParameters;
+    HashTable *lparams = NULL;
     php_sap_connection *crsrc;
     SAPRFC_ERROR_INFO err;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "a", &logonParameters) == FAILURE) {
-        return;
-    }
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
+        Z_PARAM_ARRAY_HT(lparams)
+    ZEND_PARSE_PARAMETERS_END();
 
-    if (zend_hash_num_elements(Z_ARRVAL_P(logonParameters)) == 0)
-    {
+    if (zend_hash_num_elements(lparams) == 0) {
         zend_throw_exception_ex(spl_ce_InvalidArgumentException, -1, "Logon parameters array must not be empty");
         return;
     }
@@ -1833,9 +1850,9 @@ PHP_FUNCTION(sap_connect)
     crsrc = sap_create_connection_resource();
     crsrc->refCount++;
 
-    if (SUCCESS != sap_connection_open(crsrc, Z_ARRVAL_P(logonParameters), &err))
+    if (SUCCESS != sap_connection_open(crsrc, lparams, &err))
     {
-        zval ex = sap_error_to_exception(&err);
+        zval ex = sap_error_to_exception(&err, sap_ce_SapConnectionException);
 
         php_sap_connection_ptr_dtor(crsrc);
 
@@ -1861,10 +1878,10 @@ PHP_FUNCTION(sap_connect)
  */
 PHP_FUNCTION(sap_invoke_function)
 {
-    char *name;
-    int namelen;
-    zval *zcrsrc, *zimports = NULL;
-    zend_bool rtrim = PHP_SAP_GLOBALS(rtrim_export_strings);
+    zend_string *name = NULL;
+    zval *zcrsrc = NULL;
+    zend_bool rtrim;
+    zend_bool rtrimIsNull = 1;
     HashTable *imports = NULL;
     php_sap_function *frsrc;
     php_sap_connection *crsrc;
@@ -1872,31 +1889,35 @@ PHP_FUNCTION(sap_invoke_function)
     int result;
     SAPRFC_ERROR_INFO err;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "sr|ab", &name, &namelen, &zcrsrc, &zimports, &rtrim) == FAILURE) {
-        return;
-    }
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 2, 4)
+        Z_PARAM_STR(name)
+        Z_PARAM_RESOURCE(zcrsrc)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_ARRAY_HT_EX(imports, 1, 0)
+        Z_PARAM_BOOL_EX(rtrim, rtrimIsNull, 1, 0)
+    ZEND_PARSE_PARAMETERS_END();
 
-    
     if (Z_RES_TYPE_P(zcrsrc) != le_php_sap_connection) {
-        zend_throw_exception_ex(spl_ce_InvalidArgumentException, -1, "Invalid connection. A resource of type %s is required", PHP_SAP_CONNECTION_RES_NAME);
+        zend_throw_exception_ex(
+            spl_ce_InvalidArgumentException, 
+            -1,
+            "Argument 2 passed to sap_invoke_function() must be a resource of type %s",
+            PHP_SAP_CONNECTION_RES_NAME
+        );
         return;
     }
 
     crsrc = zend_fetch_resource(Z_RES_P(zcrsrc), PHP_SAP_CONNECTION_RES_NAME, le_php_sap_connection);
 
-    if (NULL == (frsrc = sap_fetch_function(name, namelen, crsrc, &err))) {
-        zval ex = sap_error_to_exception(&err);
+    if (NULL == (frsrc = sap_fetch_function(name->val, name->len, crsrc, &err))) {
+        zval ex = sap_error_to_exception(&err, NULL);
         zend_throw_exception_object(&ex);
         return;
     }
 
-    if (NULL != zimports) {
-        imports = Z_ARRVAL_P(zimports);
-    }
-
     array_init(return_value);
     
-    if (rtrim) {
+    if ((rtrimIsNull && PHP_SAP_GLOBALS(rtrim_export_strings)) || (!rtrimIsNull && rtrim)) {
         trimType = TRIM_RIGHT;
     }
 
@@ -1905,7 +1926,7 @@ PHP_FUNCTION(sap_invoke_function)
     php_sap_function_ptr_dtor(frsrc);
 
     if (SUCCESS != result) {
-        zval ex = sap_error_to_exception(&err);
+        zval ex = sap_error_to_exception(&err, NULL);
         zend_throw_exception_object(&ex);
         return;
     }
@@ -1976,60 +1997,105 @@ PHP_METHOD(SapException, getNwSdkFunction)
 
 PHP_METHOD(Sap, __construct)
 {
-    sap_object *intern;
-    zval *zlogonParameters = NULL;
+    zval *zlparams = NULL;
     SAPRFC_ERROR_INFO error;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "a", &zlogonParameters) == FAILURE) {
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_ARRAY_EX(zlparams, 1, 0)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (NULL != zlparams)
+    {
+        zval __args, rv;
+
+        array_init(&__args);
+        zend_hash_next_index_insert(Z_ARRVAL(__args), zlparams);
+
+        sap_call_object_method(getThis(), Z_OBJCE_P(getThis()), "connect", NULL, &__args, &rv);
+    }
+}
+
+PHP_METHOD(Sap, connect)
+{
+    sap_object *intern;
+    HashTable *lparams = NULL;
+    SAPRFC_ERROR_INFO error;
+    php_sap_connection *previous = NULL;
+
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
+        Z_PARAM_ARRAY_HT(lparams)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (zend_hash_num_elements(lparams) == 0) {
+        zend_throw_exception_ex(spl_ce_InvalidArgumentException, -1, "Logon parameters array must not be empty");
         return;
     }
 
     intern = sap_get_sap_object(getThis());
 
-    /* if constructor is called again, destroy previous connection */
-    if (intern->connection) {
-        php_sap_connection_ptr_dtor(intern->connection);
-    }
+    previous = intern->connection;
 
     intern->connection = sap_create_connection_resource();
     intern->connection->refCount++;
 
-    if (SUCCESS != sap_connection_open(intern->connection, Z_ARRVAL_P(zlogonParameters), &error)) {
-        zval ex = sap_error_to_exception(&error);
+    if (SUCCESS != sap_connection_open(intern->connection, lparams, &error))
+    {
+        zval ex = sap_error_to_exception(&error, sap_ce_SapConnectionException);
+
+        php_sap_connection_ptr_dtor(intern->connection);
+        //restore previous connection
+        intern->connection = previous;
+
         zend_throw_exception_object(&ex);
+
         return;
     }
+
+    /* if a connection previously existed, destroy it */
+    if (NULL != previous) {
+        php_sap_connection_ptr_dtor(previous);
+    }
+}
+
+PHP_METHOD(Sap, getFunctionClass)
+{
+    sap_object *intern = intern = sap_get_sap_object(getThis());
+    zend_string *fce = zend_string_copy(intern->func_ce->name);
+
+    RETVAL_STR(fce);
 }
 
 PHP_METHOD(Sap, setFunctionClass)
 {
-    sap_object *intern;
+    sap_object *intern = sap_get_sap_object(getThis());
     zend_class_entry *fce = php_sap_get_function_ce();
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "C", &fce) == FAILURE) {
-        return;
-    }
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
+        Z_PARAM_CLASS(fce)
+    ZEND_PARSE_PARAMETERS_END();
 
-    intern = sap_get_sap_object(getThis());
     intern->func_ce = fce;
 }
 
 PHP_METHOD(Sap, call)
 {
-    char *name;
-    int namelen;
-    zval *zimports = NULL;
-    zend_bool rtrim = PHP_SAP_GLOBALS(rtrim_export_strings);
-    sap_object *intern;
+    zend_string *name = NULL;
     HashTable *imports = NULL;
+    zend_bool rtrim;
+    zend_bool rtrimIsNull = 1;
+    sap_object *intern;
     php_sap_function *func;
     TRIM_TYPE trimType = TRIM_NONE;
-    int cresult;
     SAPRFC_ERROR_INFO error;
+    int cresult;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "s|ab", &name, &namelen, &zimports, &rtrim) == FAILURE) {
-        return;
-    }
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 3)
+        Z_PARAM_STR(name)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_ARRAY_HT_EX(imports, 1, 0)
+        Z_PARAM_BOOL_EX(rtrim, rtrimIsNull, 1, 0)
+    ZEND_PARSE_PARAMETERS_END();
 
     intern = sap_get_sap_object(getThis());
 
@@ -2039,20 +2105,16 @@ PHP_METHOD(Sap, call)
     }
 
     /* Fetch function's information */
-    if (NULL == (func = sap_fetch_function(name, namelen, intern->connection, &error))) {
-        zval ex = sap_error_to_exception(&error);
+    if (NULL == (func = sap_fetch_function(name->val, name->len, intern->connection, &error))) {
+        zval ex = sap_error_to_exception(&error, NULL);
         zend_throw_exception_object(&ex);
         return;
-    }
-
-    if (NULL != zimports) {
-        imports = Z_ARRVAL_P(zimports);
     }
 
     /* Exports will be stored in return_value's hashtable */
     array_init(return_value);
 
-    if (rtrim) {
+    if ((rtrimIsNull && PHP_SAP_GLOBALS(rtrim_export_strings)) || (!rtrimIsNull && rtrim)) {
         trimType = TRIM_RIGHT;
     }
 
@@ -2064,7 +2126,7 @@ PHP_METHOD(Sap, call)
 
     /* Call failed */
     if (SUCCESS != cresult) {
-        zval ex = sap_error_to_exception(&error);
+        zval ex = sap_error_to_exception(&error, NULL);
         zend_throw_exception_object(&ex);
         return;
     }
@@ -2072,17 +2134,26 @@ PHP_METHOD(Sap, call)
 
 PHP_METHOD(Sap, fetchFunction)
 {
-    zval *zfunction;
+    sap_object *intern = sap_get_sap_object(getThis());
+    zval *zfunction = NULL;
     char *function_name;
     int function_len;
-    zend_class_entry *fce = sap_ce_SapFunction;
+    zend_class_entry *fce = php_sap_get_function_ce();
     zval *zargs = NULL;
-    sap_object *intern;
+    
     php_sap_function *function_descr_rsrc;
     sap_function *func;
     SAPRFC_ERROR_INFO error;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "z|Ca", &zfunction, &fce, &zargs) == FAILURE) {
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 3)
+        Z_PARAM_ZVAL(zfunction)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_CLASS(fce)
+        Z_PARAM_ARRAY(zargs)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (NULL == intern->connection) {
+        zend_throw_exception_ex(spl_ce_LogicException, -1, "There is no connection to a SAP R/3 system");
         return;
     }
 
@@ -2107,7 +2178,14 @@ PHP_METHOD(Sap, fetchFunction)
                 }
 
                 if (Z_TYPE(rv) != IS_STRING) {
-                    zend_error(E_ERROR, "Method %s::getName() should return a string (%s returned)", fce->name->val, zend_get_type_by_const(Z_TYPE(rv)));
+                    zend_throw_exception_ex(
+                        spl_ce_LogicException,
+                        -1,
+                        "Method %s::getName() should return a string (%s returned)", 
+                        fce->name->val,
+                        zend_get_type_by_const(Z_TYPE(rv))
+                    );
+
                     return;
                 }
 
@@ -2129,15 +2207,13 @@ PHP_METHOD(Sap, fetchFunction)
         }
     }
 
-    intern = sap_get_sap_object(getThis());
-
     /* Get function description from SAP backend */
     function_descr_rsrc = sap_fetch_function(function_name, function_len, intern->connection, &error);
 
     efree(function_name);
 
     if (NULL == function_descr_rsrc) {
-        zval ex = sap_error_to_exception(&error);
+        zval ex = sap_error_to_exception(&error, NULL);
         zend_throw_exception_object(&ex);
         return;
     }
@@ -2220,7 +2296,7 @@ PHP_METHOD(Sap, getAttributes)
 
         SAP_ERROR_SET_RFCFUNCTION(&err, "RfcGetConnectionAttributes", sizeof("RfcGetConnectionAttributes") - 1);
 
-        ex = sap_error_to_exception(&err);
+        ex = sap_error_to_exception(&err, NULL);
         zend_throw_exception_object(&ex);
         return;
     }
@@ -2358,13 +2434,13 @@ PHP_METHOD(SapFunction, getName)
 
         SAP_ERROR_SET_RFCFUNCTION(&error, "RfcGetFunctionName", sizeof("RfcGetFunctionName") - 1);
 
-        ex = sap_error_to_exception(&error);
+        ex = sap_error_to_exception(&error, NULL);
         zend_throw_exception_object(&ex);
         return;
     }
 
     if (SUCCESS != sapuc_to_utf8(funcNameU, &name, &namelen, &error)) {
-        zval ex = sap_error_to_exception(&error);
+        zval ex = sap_error_to_exception(&error, NULL);
         zend_throw_exception_object(&ex);
         return;
     }
@@ -2431,7 +2507,7 @@ PHP_METHOD(SapFunction, __invoke)
 
     if (SUCCESS != sap_function_invoke(intern->function_descr, intern->connection, imports, Z_ARRVAL_P(return_value), trimType, &error))
     {
-        zval ex = sap_error_to_exception(&error);
+        zval ex = sap_error_to_exception(&error, NULL);
 
         zval_dtor(return_value);
         zend_throw_exception_object(&ex);
@@ -2498,13 +2574,13 @@ PHP_METHOD(SapFunction, getTypeName)
         memset(&error, 0, sizeof(SAPRFC_ERROR_INFO));
 
         if (RFC_OK != RfcGetTypeName(sp->param.typeDescHandle, typeNameU, (RFC_ERROR_INFO*)&error)) {
-            zval ex = sap_error_to_exception(&error);
+            zval ex = sap_error_to_exception(&error, NULL);
             zend_throw_exception_object(&ex);
             return;
         }
 
         if (SUCCESS != sapuc_to_utf8(typeNameU, &typeName, &typeNameLen, &error)) {
-            zval ex = sap_error_to_exception(&error);
+            zval ex = sap_error_to_exception(&error, NULL);
             zend_throw_exception_object(&ex);
             return;
         }
@@ -2915,6 +2991,10 @@ PHP_MINIT_FUNCTION(sap)
     zend_declare_property_string(sap_ce_SapException, "MSGV4", sizeof("MSGV4") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
     zend_declare_property_string(sap_ce_SapException, "KEY", sizeof("KEY") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
     zend_declare_property_string(sap_ce_SapException, "nwsdkfunction", sizeof("nwsdkfunction") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
+
+    //SapConnectionException
+    INIT_CLASS_ENTRY(ce, "SapConnectionException", sap_connection_exception_fe);
+    sap_ce_SapConnectionException = zend_register_internal_class_ex(&ce, sap_ce_SapException);
 
     //Sap
     INIT_CLASS_ENTRY(ce, "Sap", sap_fe_Sap);

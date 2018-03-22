@@ -1,5 +1,5 @@
 <?php
-ini_set('sap.rtrim_export_strings', true);
+date_default_timezone_set('UTC');
 
 return [
 	'dest' => 'EDS',
