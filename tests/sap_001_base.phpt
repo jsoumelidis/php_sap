@@ -2,26 +2,26 @@
 Verify ext loaded, default configuration, classes and functions
 --FILE--
 <?php
-echo extension_loaded('sap') ? 'yes' : 'no', PHP_EOL;
+var_dump(extension_loaded('sap'));
 
-echo class_exists('Sap', false) ? 'yes' : 'no', PHP_EOL;
-echo class_exists('SapFunction', false) ? 'yes' : 'no', PHP_EOL;
-echo class_exists('SapException', false) ? 'yes' : 'no', PHP_EOL;
-echo class_exists('SapConnectionException', false) ? 'yes' : 'no', PHP_EOL;
-echo class_exists('SapRfcReadTable', false) ? 'yes' : 'no', PHP_EOL;
+var_dump(class_exists('Sap', false));
+var_dump(class_exists('SapFunction', false));
+var_dump(class_exists('SapException', false));
+var_dump(class_exists('SapConnectionException', false));
+var_dump(class_exists('SapRfcReadTable', false));
 
-echo function_exists('sap_connect') ? 'yes' : 'no', PHP_EOL;
-echo function_exists('sap_invoke_function') ? 'yes' : 'no', PHP_EOL;
+var_dump(function_exists('sap_connect'));
+var_dump(function_exists('sap_invoke_function'));
 
 var_dump(ini_get('sap.rtrim_export_strings'));
 ?>
 --EXPECT--
-yes
-yes
-yes
-yes
-yes
-yes
-yes
-yes
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
 string(3) "Off"

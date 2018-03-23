@@ -26,9 +26,16 @@ try { $r = sap_invoke_function('DUMMY_RFC', $rsrc, 'invalid'); }
 catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
+
+/* test accepts boolean as 4th argument */
+try { $r = sap_invoke_function('DUMMY_RFC', $rsrc, [], []); }
+catch (TypeError $e) {
+	echo $e->getMessage(), PHP_EOL;
+}
 ?>
 --EXPECT--
 Argument 1 passed to sap_invoke_function() must be of the type string, array given
 Argument 2 passed to sap_invoke_function() must be of the type resource, array given
 Argument 2 passed to sap_invoke_function() must be a resource of type SAP Connection
 Argument 3 passed to sap_invoke_function() must be of the type array, string given
+Argument 4 passed to sap_invoke_function() must be of the type boolean, array given

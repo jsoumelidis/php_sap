@@ -3,6 +3,7 @@
 #endif
 
 #include "php_sap.h"
+#include "php_sap_messages.h"
 
 #if defined(SAPwithPTHREADS)
 #   if defined(WIN32)
@@ -401,6 +402,12 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, setActive), _IS_BO
     ZEND_ARG_INFO(0, isActive)
 ZEND_END_ARG_INFO()
 
+PHP_METHOD(SapFunction, isActive);
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, isActive), _IS_BOOL, NULL, 0)
+    ZEND_ARG_INFO(0, param)
+ZEND_END_ARG_INFO()
+
 PHP_METHOD(SapFunction, __invoke);
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, __invoke), IS_ARRAY, NULL, 0)
@@ -427,6 +434,7 @@ const zend_function_entry sap_fe_SapFunction[] = {
     PHP_ME(SapFunction, getName,        SAP_ME_ARGS(SapFunction, getName),      ZEND_ACC_PUBLIC)
     PHP_ME(SapFunction, getParameters,  SAP_ME_ARGS(SapFunction, getParameters),ZEND_ACC_PUBLIC)
     PHP_ME(SapFunction, setActive,      SAP_ME_ARGS(SapFunction, setActive),    ZEND_ACC_PUBLIC)
+    PHP_ME(SapFunction, isActive,       SAP_ME_ARGS(SapFunction, isActive),     ZEND_ACC_PUBLIC)
     PHP_ME(SapFunction, getTypeName,    SAP_ME_ARGS(SapFunction, getTypeName),  ZEND_ACC_PUBLIC)
     PHP_ME(SapFunction, __toString,     NULL,                                   ZEND_ACC_PUBLIC)
     PHP_FE_END
@@ -2298,6 +2306,7 @@ PHP_METHOD(Sap, getAttributes)
 
         ex = sap_error_to_exception(&err, NULL);
         zend_throw_exception_object(&ex);
+
         return;
     }
 
@@ -2425,7 +2434,8 @@ PHP_METHOD(SapFunction, getName)
     intern = sap_get_function_object(getThis());
 
     if (NULL == intern->function_descr) {
-        RETURN_STRING("");
+        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        return;
     }
 
     if (RFC_OK != RfcGetFunctionName(intern->function_descr->fdh, funcNameU, (RFC_ERROR_INFO*)&error))
@@ -2453,22 +2463,54 @@ PHP_METHOD(SapFunction, getName)
 PHP_METHOD(SapFunction, setActive)
 {
     zend_string *pname;
-    zend_bool isActive = SAPRFC_PARAM_DEFAULT;
+    zend_bool isActive = SAPRFC_PARAM_ACTIVE;
     sap_function *intern;
     SAPRFC_PARAMETER_DESC *sp;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "S|b", &pname, &isActive) == FAILURE) {
-        return;
-    }
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 3)
+        Z_PARAM_STR(pname)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_BOOL(isActive)
+    ZEND_PARSE_PARAMETERS_END();
 
     intern = sap_get_function_object(getThis());
 
-    if (!intern->function_descr) {
-        RETURN_FALSE;
+    if (NULL == intern->function_descr) {
+        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        return;
     }
 
-    if (sp = zend_hash_find_ptr(intern->function_descr->params, pname)) {
-        sp->state = isActive;
+    if (NULL == (sp = zend_hash_find_ptr(intern->function_descr->params, pname))) {
+        zend_throw_exception_ex(spl_ce_UnexpectedValueException, -1, "Parameter '%s' not found", pname->val);
+        return;
+    }
+
+    sp->state = isActive;
+}
+
+PHP_METHOD(SapFunction, isActive)
+{
+    zend_string *pname;
+    sap_function *intern;
+    SAPRFC_PARAMETER_DESC *sp;
+
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 3)
+        Z_PARAM_STR(pname)
+    ZEND_PARSE_PARAMETERS_END();
+
+    intern = sap_get_function_object(getThis());
+
+    if (NULL == intern->function_descr) {
+        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        return;
+    }
+
+    if (NULL == (sp = zend_hash_find_ptr(intern->function_descr->params, pname))) {
+        zend_throw_exception_ex(spl_ce_UnexpectedValueException, -1, PHP_SAP_PARAM_NOT_FOUND, pname->val);
+        return;
+    }
+
+    if (sp->state == SAPRFC_PARAM_DEFAULT || sp->state == SAPRFC_PARAM_ACTIVE) {
         RETURN_TRUE;
     }
 
@@ -2478,15 +2520,18 @@ PHP_METHOD(SapFunction, setActive)
 PHP_METHOD(SapFunction, __invoke)
 {
     zval *args = NULL;
-    zend_bool rtrim = PHP_SAP_GLOBALS(rtrim_export_strings);
+    zend_bool rtrim;
+    zend_bool rtrimIsNull = 1;
     HashTable *imports = NULL;
     TRIM_TYPE trimType = TRIM_NONE;
     sap_function *intern;
     SAPRFC_ERROR_INFO error;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "|ab", &args, &rtrim) == FAILURE) {
-        return;
-    }
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 2)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_ARRAY_HT_EX(imports, 1, 0)
+        Z_PARAM_BOOL_EX(rtrim, rtrimIsNull, 1, 0)
+    ZEND_PARSE_PARAMETERS_END();
 
     if (NULL != args) {
         imports = Z_ARRVAL_P(args);
@@ -2495,11 +2540,11 @@ PHP_METHOD(SapFunction, __invoke)
     intern = sap_get_function_object(getThis());
 
     if (NULL == intern->function_descr || NULL == intern->connection) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, "Function's description has not been fetced");
+        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
         return;
     }
 
-    if (rtrim) {
+    if ((rtrimIsNull && PHP_SAP_GLOBALS(rtrim_export_strings)) || (!rtrimIsNull && rtrim)) {
         trimType = TRIM_RIGHT;
     }
 
@@ -2509,7 +2554,7 @@ PHP_METHOD(SapFunction, __invoke)
     {
         zval ex = sap_error_to_exception(&error, NULL);
 
-        zval_dtor(return_value);
+        zval_ptr_dtor(return_value);
         zend_throw_exception_object(&ex);
         return;
     }
@@ -2523,7 +2568,7 @@ PHP_METHOD(SapFunction, getParameters)
     intern = sap_get_function_object(getThis());
 
     if (!intern->function_descr) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, "Function's description has not been fetced");
+        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
         return;
     }
 
@@ -2533,7 +2578,7 @@ PHP_METHOD(SapFunction, getParameters)
     {
         zval zpkey;
 
-        ZVAL_STR(&zpkey, pkey);
+        ZVAL_STR_COPY(&zpkey, pkey);
         
         if (NULL == zend_hash_next_index_insert(Z_ARRVAL_P(return_value), &zpkey)) {
             zval_ptr_dtor(&zpkey);
@@ -2547,47 +2592,48 @@ PHP_METHOD(SapFunction, getTypeName)
     zend_string *pname;
     sap_function *intern;
     SAPRFC_PARAMETER_DESC *sp;
+    RFC_ABAP_NAME typeNameU;
+    char *typeName;
+    int typeNameLen;
     SAPRFC_ERROR_INFO error;
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "S", &pname) == FAILURE) {
-        return;
-    }
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
+        Z_PARAM_STR(pname)
+    ZEND_PARSE_PARAMETERS_END();
 
     intern = sap_get_function_object(getThis());
 
     if (!intern->function_descr) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, "Function's descriptions has not been fetced");
+        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHEDF);
         return;
     }
 
     if (NULL == (sp = zend_hash_find_ptr(intern->function_descr->params, pname))) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, "Parameter not found");
+        zend_throw_exception_ex(spl_ce_UnexpectedValueException, -1, PHP_SAP_PARAM_NOT_FOUND, pname->val);
         return;
     }
 
-    if (sp->param.type == RFCTYPE_TABLE || sp->param.type == RFCTYPE_STRUCTURE)
-    {
-        RFC_ABAP_NAME typeNameU;
-        char *typeName;
-        int typeNameLen;
-
-        memset(&error, 0, sizeof(SAPRFC_ERROR_INFO));
-
-        if (RFC_OK != RfcGetTypeName(sp->param.typeDescHandle, typeNameU, (RFC_ERROR_INFO*)&error)) {
-            zval ex = sap_error_to_exception(&error, NULL);
-            zend_throw_exception_object(&ex);
-            return;
-        }
-
-        if (SUCCESS != sapuc_to_utf8(typeNameU, &typeName, &typeNameLen, &error)) {
-            zval ex = sap_error_to_exception(&error, NULL);
-            zend_throw_exception_object(&ex);
-            return;
-        }
-
-        RETURN_STRINGL(typeName, typeNameLen);
-        efree(typeName);
+    if (sp->param.type != RFCTYPE_TABLE && sp->param.type != RFCTYPE_STRUCTURE) {
+        zend_throw_exception_ex(spl_ce_LogicException, -1, "Parameter '%s' is not of type RFCTYPE_TABLE or RFCTYPE_STRUCTURE", pname->val);
+        return;
     }
+
+    memset(&error, 0, sizeof(SAPRFC_ERROR_INFO));
+
+    if (RFC_OK != RfcGetTypeName(sp->param.typeDescHandle, typeNameU, (RFC_ERROR_INFO*)&error)) {
+        zval ex = sap_error_to_exception(&error, NULL);
+        zend_throw_exception_object(&ex);
+        return;
+    }
+
+    if (SUCCESS != sapuc_to_utf8(typeNameU, &typeName, &typeNameLen, &error)) {
+        zval ex = sap_error_to_exception(&error, NULL);
+        zend_throw_exception_object(&ex);
+        return;
+    }
+
+    RETURN_STRINGL(typeName, typeNameLen);
+    efree(typeName);
 }
 
 PHP_METHOD(SapFunction, __toString)
