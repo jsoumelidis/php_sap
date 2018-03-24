@@ -3,7 +3,6 @@
 #endif
 
 #include "php_sap.h"
-#include "php_sap_messages.h"
 
 #if defined(SAPwithPTHREADS)
 #   if defined(WIN32)
@@ -19,9 +18,12 @@
 #include "zend_exceptions.h"
 
 #include "ext/spl/spl_exceptions.h"
-#define php_sap_invalid_args_exception spl_ce_InvalidArgumentException
-
 #include "ext/date/php_date.h"
+
+#define PHP_SAP_LOGON_PARAMETERS_EMPTY_ARRAY "Logon parameters array must not be empty"
+#define PHP_SAP_NO_CONNECTION "There is no connection to a SAP R/3 system"
+#define PHP_SAP_FUNC_DESCR_NOT_FETCHED "Function's description has not been fetched"
+#define PHP_SAP_PARAM_NOT_FOUND "Parameter '%s' not found"
 
 #define _NEWZVAL &EG(uninitialized_zval)
 #define sap_get_intern(_arg, type) (type*)((char *)Z_OBJ_P(_arg) - Z_OBJ_P(_arg)->handlers->offset)
@@ -1851,7 +1853,7 @@ PHP_FUNCTION(sap_connect)
     ZEND_PARSE_PARAMETERS_END();
 
     if (zend_hash_num_elements(lparams) == 0) {
-        zend_throw_exception_ex(spl_ce_InvalidArgumentException, -1, "Logon parameters array must not be empty");
+        zend_throw_exception(spl_ce_InvalidArgumentException, PHP_SAP_LOGON_PARAMETERS_EMPTY_ARRAY, -1);
         return;
     }
 
@@ -2006,7 +2008,6 @@ PHP_METHOD(SapException, getNwSdkFunction)
 PHP_METHOD(Sap, __construct)
 {
     zval *zlparams = NULL;
-    SAPRFC_ERROR_INFO error;
 
     ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
         Z_PARAM_OPTIONAL
@@ -2036,7 +2037,7 @@ PHP_METHOD(Sap, connect)
     ZEND_PARSE_PARAMETERS_END();
 
     if (zend_hash_num_elements(lparams) == 0) {
-        zend_throw_exception_ex(spl_ce_InvalidArgumentException, -1, "Logon parameters array must not be empty");
+        zend_throw_exception(spl_ce_InvalidArgumentException, PHP_SAP_LOGON_PARAMETERS_EMPTY_ARRAY, -1);
         return;
     }
 
@@ -2108,7 +2109,7 @@ PHP_METHOD(Sap, call)
     intern = sap_get_sap_object(getThis());
 
     if (NULL == intern->connection) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, "There is no connection to a SAP R/3 system");
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_NO_CONNECTION, -1);
         return;
     }
 
@@ -2161,7 +2162,7 @@ PHP_METHOD(Sap, fetchFunction)
     ZEND_PARSE_PARAMETERS_END();
 
     if (NULL == intern->connection) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, "There is no connection to a SAP R/3 system");
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_NO_CONNECTION, -1);
         return;
     }
 
@@ -2434,7 +2435,7 @@ PHP_METHOD(SapFunction, getName)
     intern = sap_get_function_object(getThis());
 
     if (NULL == intern->function_descr) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1);
         return;
     }
 
@@ -2476,7 +2477,7 @@ PHP_METHOD(SapFunction, setActive)
     intern = sap_get_function_object(getThis());
 
     if (NULL == intern->function_descr) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1);
         return;
     }
 
@@ -2501,7 +2502,7 @@ PHP_METHOD(SapFunction, isActive)
     intern = sap_get_function_object(getThis());
 
     if (NULL == intern->function_descr) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED, -1);
         return;
     }
 
@@ -2540,7 +2541,7 @@ PHP_METHOD(SapFunction, __invoke)
     intern = sap_get_function_object(getThis());
 
     if (NULL == intern->function_descr || NULL == intern->connection) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1);
         return;
     }
 
@@ -2568,7 +2569,7 @@ PHP_METHOD(SapFunction, getParameters)
     intern = sap_get_function_object(getThis());
 
     if (!intern->function_descr) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHED);
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1);
         return;
     }
 
@@ -2604,7 +2605,7 @@ PHP_METHOD(SapFunction, getTypeName)
     intern = sap_get_function_object(getThis());
 
     if (!intern->function_descr) {
-        zend_throw_exception_ex(spl_ce_LogicException, -1, PHP_SAP_FUNC_DESCR_NOT_FETCHEDF);
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED, -1);
         return;
     }
 
@@ -2727,7 +2728,7 @@ PHP_METHOD(SapRfcReadTable, select)
                 zval *zfieldname = zfields;
 
                 if (Z_STRLEN_P(zfieldname) == 0) {
-                    zend_throw_exception(php_sap_invalid_args_exception, "SapRfcReadTable::select() : Empty string as query field is not allowed", -1);
+                    zend_throw_exception(spl_ce_InvalidArgumentException, "SapRfcReadTable::select() : Empty string as query field is not allowed", -1);
                     return;
                 }
 
@@ -2750,7 +2751,7 @@ PHP_METHOD(SapRfcReadTable, select)
             else if (Z_TYPE_P(zfields) != IS_ARRAY)
             {
                 zend_throw_exception_ex(
-                    php_sap_invalid_args_exception,
+                    spl_ce_InvalidArgumentException,
                     -1,
                     "Argument 1 of SapRfcReadTable::select() must be a string or array. %s given",
                     zend_get_type_by_const(Z_TYPE_P(zfields))
