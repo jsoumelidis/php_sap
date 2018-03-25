@@ -21,13 +21,13 @@ catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/* test accepts array as 3rd argument */
+/* test accepts array or null as 3rd argument */
 try { $r = sap_invoke_function('DUMMY_RFC', $rsrc, 'invalid'); }
 catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/* test accepts boolean as 4th argument */
+/* test accepts boolean or null as 4th argument */
 try { $r = sap_invoke_function('DUMMY_RFC', $rsrc, [], []); }
 catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;

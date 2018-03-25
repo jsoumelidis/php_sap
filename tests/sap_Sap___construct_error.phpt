@@ -2,7 +2,7 @@
 Sap::__construct() error behavior
 --FILE--
 <?php
-/** test accepts array as 1st argument */
+/** test accepts array or null as 1st argument */
 try { $s = new Sap('invalid'); }
 catch (TypeError $e ) {
 	echo $e->getMessage(), PHP_EOL;

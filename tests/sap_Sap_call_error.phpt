@@ -10,13 +10,13 @@ catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/** test Sap::call accepts array as 2nd argument */
+/** test Sap::call accepts array or null as 2nd argument */
 try { $s->call('RFC_PING', 'invalid'); }
 catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/** test Sap::call accepts bool as 3rd argument */
+/** test Sap::call accepts bool or null as 3rd argument */
 try { $s->call('RFC_PING', null, []); }
 catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;

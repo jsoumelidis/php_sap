@@ -20,16 +20,15 @@
 #include "ext/spl/spl_exceptions.h"
 #include "ext/date/php_date.h"
 
+/* Common exception messages */
 #define PHP_SAP_LOGON_PARAMETERS_EMPTY_ARRAY "Logon parameters array must not be empty"
 #define PHP_SAP_NO_CONNECTION "There is no connection to a SAP R/3 system"
 #define PHP_SAP_FUNC_DESCR_NOT_FETCHED "Function's description has not been fetched"
 #define PHP_SAP_PARAM_NOT_FOUND "Parameter '%s' not found"
 
-#define _NEWZVAL &EG(uninitialized_zval)
 #define sap_get_intern(_arg, type) (type*)((char *)Z_OBJ_P(_arg) - Z_OBJ_P(_arg)->handlers->offset)
 #define sap_get_function_object(_arg) sap_get_intern(_arg, sap_function)
 #define sap_get_sap_object(_arg) sap_get_intern(_arg, sap_object)
-#define sap_read_property(prop) zend_read_property(Z_OBJCE_P(getThis()), getThis(), prop, sizeof(prop), 0, NULL)
 
 #define SAP_ME_ARGS(classname, method) arginfo_##classname##_##method
 #define SAP_FE_ARGS(func) arginfo_func_##func
@@ -213,74 +212,56 @@ PHP_SAP_API zend_class_entry * php_sap_get_exception_ce(void)
 
 /* SapException */
 
-/* get message key */
 PHP_METHOD(SapException, getMessageKey);
 
-/* returns string */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageKey), IS_STRING, NULL, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get message type */
 PHP_METHOD(SapException, getMessageType);
 
-/* returns string :: MSGTY */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageType), IS_STRING, NULL, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get message id or class */
 PHP_METHOD(SapException, getMessageId);
 
-/* returns string :: MSGID */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageId), IS_STRING, NULL, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get message number */
 PHP_METHOD(SapException, getMessageNumber);
 
-/* returns int :: MSGNO */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageNumber), IS_LONG, NULL, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get error's variable 1 */
 PHP_METHOD(SapException, getMessageVar1);
 
-/* returns string|null :: MSGV */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar1), IS_STRING, NULL, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get error's variable 2 */
 PHP_METHOD(SapException, getMessageVar2);
 
-/* returns string|null :: MSGV */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar2), IS_STRING, NULL, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get error's variable 3 */
 PHP_METHOD(SapException, getMessageVar3);
 
-/* returns string|null :: MSGV */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar3), IS_STRING, NULL, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get error's variable 4 */
 PHP_METHOD(SapException, getMessageVar4);
 
-/* returns string|null :: MSGV */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar4), IS_STRING, NULL, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* get the internal sdk function the error came from */
 PHP_METHOD(SapException, getNwSdkFunction);
 
-/* returns string|null :: function's name */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getNwSdkFunction), IS_STRING, NULL, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
@@ -308,66 +289,46 @@ const zend_function_entry sap_connection_exception_fe[] = {
 /* Sap constructor */
 PHP_METHOD(Sap, __construct);
 
-/* return void, throws SapCommunicationException */
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, __construct), 0)
-    /* array: logon parameters */
     ZEND_ARG_ARRAY_INFO(0, logonParameters, 1)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, connect);
 
-/* return void, throws SapCommunicationException */
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, connect), 0)
-    /* array: logon parameters */
     ZEND_ARG_ARRAY_INFO(0, logonParameters, 0)
 ZEND_END_ARG_INFO()
 
-/* get the default class this connection uses for fetching remote function objects */
 PHP_METHOD(Sap, getFunctionClass);
 
-/* return string: class name */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getFunctionClass), IS_STRING, NULL, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* sets the default class this connection uses for fetching remote function objects */
 PHP_METHOD(Sap, setFunctionClass);
 
-/* return void */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, setFunctionClass), IS_NULL, NULL, 1)
-    /* string: the class name derived from SapFunction */
     ZEND_ARG_TYPE_INFO(0, className, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-/* directly invokes a remote function on the backend system */
 PHP_METHOD(Sap, call);
 
-/* return array: EXPORT/CHANGING/TABLE parameters, throws SapException */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, call), IS_ARRAY, NULL, 0)
-    /* remote function name to be invoked, string, not null */
     ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
-    /* import parameters as array, optional, can be null */
     ZEND_ARG_ARRAY_INFO(0, imports, 1)
     ZEND_ARG_TYPE_INFO(0, rtrim, _IS_BOOL, 1)
 ZEND_END_ARG_INFO()
 
-/* fetches a remote function description from the backend */
 PHP_METHOD(Sap, fetchFunction);
 
-/* return SapFunction: a "ready to call" SapFunction object, throws SapException */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(SAP_ME_ARGS(Sap, fetchFunction), 0, 1, IS_OBJECT, "SapFunction", 0)
-    /* string|SapFunction: remote function's name or a SapFunction object */
     ZEND_ARG_INFO(0, name)
-    /* string|null: a class name derived from SapFunction to create the return object */
     ZEND_ARG_TYPE_INFO(0, moduleClass, IS_STRING, 0)
-    /* array|null: constructor arguments, used in conjuction with the second parameter */
     ZEND_ARG_ARRAY_INFO(0, ctor_args, 0)
 ZEND_END_ARG_INFO()
 
-/* get connection attributes */
 PHP_METHOD(Sap, getAttributes);
 
-/* return array: connection attributes, throws SapException */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getAttributes), IS_ARRAY, NULL, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
@@ -385,22 +346,16 @@ const zend_function_entry sap_fe_Sap[] = {
 
 /* SapFunction */
 
-/* get remote function's name */
 PHP_METHOD(SapFunction, getName);
 
-/* return string: remote function's name */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getName), IS_STRING, NULL, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
-/* sets a parameter active/inactive */
 PHP_METHOD(SapFunction, setActive);
 
-/* return bool: true on success or false on failure, throws UnexpectedValueException */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, setActive), _IS_BOOL, NULL, 0)
-    /* string: parameter name */
     ZEND_ARG_INFO(0, param)
-    /* bool|null: true for active, false for inactive, null for default state */
     ZEND_ARG_INFO(0, isActive)
 ZEND_END_ARG_INFO()
 
@@ -455,12 +410,21 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, select), IS_AR
     ZEND_ARG_INFO(0, fields)
     ZEND_ARG_TYPE_INFO(0, table, IS_STRING, 0)
     ZEND_ARG_ARRAY_INFO(0, options, 1)
-    ZEND_ARG_TYPE_INFO(0, limit, IS_LONG, 0)
-    ZEND_ARG_TYPE_INFO(0, offset, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO(0, limit, IS_LONG, 1)
+    ZEND_ARG_TYPE_INFO(0, offset, IS_LONG, 1)
+    ZEND_ARG_TYPE_INFO(0, rtrim, _IS_BOOL, 1)
+ZEND_END_ARG_INFO()
+
+PHP_METHOD(SapRfcReadTable, describe);
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, describe), IS_ARRAY, NULL, 0)
+    ZEND_ARG_TYPE_INFO(0, table, IS_STRING, 0)
+    ZEND_ARG_ARRAY_INFO(0, fields, 0)
 ZEND_END_ARG_INFO()
 
 const zend_function_entry sap_fe_SapRfcReadTable[] = {
     PHP_ME(SapRfcReadTable, getName,    SAP_ME_ARGS(SapRfcReadTable, getName),  ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
+    PHP_ME(SapRfcReadTable, describe,   SAP_ME_ARGS(SapRfcReadTable, describe), ZEND_ACC_PUBLIC)
     PHP_ME(SapRfcReadTable, select,     SAP_ME_ARGS(SapRfcReadTable, select),   ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
@@ -469,11 +433,11 @@ const zend_function_entry sap_fe_SapRfcReadTable[] = {
 /* }}} */
 
 static int sap_import(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_TYPE_DESC_HANDLE tdh, unsigned int length, zval *zvalue, SAPRFC_ERROR_INFO *err);
-
 static int sap_export(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_TYPE_DESC_HANDLE tdh, unsigned int length, zval *rv, TRIM_TYPE strTrimType, SAPRFC_ERROR_INFO *err);
 
-/* Common functions */
+/* Internal functions */
 
+/* {{{ */
 static unsigned int strlenU8(char *str, unsigned int str_len)
 {
     unsigned int len = 0, pos = 0;
@@ -711,19 +675,16 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
 int format_datetime_object(zval *object, zval *return_value, const char *format)
 {
     zval __args;
-    zval *zformat_arg;
+    zval zformat_arg;
     int result;
 
-    array_init(&__args);
+    array_init_size(&__args, 1);
+    ZVAL_STRING(&zformat_arg, format);
 
-    zformat_arg = zend_hash_next_index_insert_new(Z_ARRVAL(__args), _NEWZVAL);
-
-    if (NULL == zformat_arg) {
+    if (NULL == zend_hash_next_index_insert_new(Z_ARRVAL(__args), &zformat_arg)) {
         zval_dtor(&__args);
         return FAILURE;
     }
-
-    ZVAL_STRING(zformat_arg, format);
 
     result = sap_call_object_method(object, Z_OBJCE_P(object), "format", NULL, &__args, return_value);
 
@@ -1267,16 +1228,16 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
         }
         default:
         {
-            zval zcopy, *zcopy_p = &zcopy;
+            zval zcopy;
             unsigned int strU8len;
             SAP_UC *strU;
             unsigned int strU16len;
 
             if (Z_TYPE_P(zvalue) != IS_STRING)
             {
-                ZVAL_ZVAL(zcopy_p, zvalue, 1, 0);
-                convert_to_string(zcopy_p);
-                zvalue = zcopy_p;
+                ZVAL_ZVAL(&zcopy, zvalue, 1, 0);
+                convert_to_string(&zcopy);
+                zvalue = &zcopy;
             }
 
             strU8len = strlenU8(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue));
@@ -1288,10 +1249,14 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 
                 if (SUCCESS == utf8_substr(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue), 0, length, &sub, &sublen))
                 {
-                    zval_dtor(zcopy_p);
-                    ZVAL_STRINGL(zcopy_p, sub, sublen);
+                    if (UNEXPECTED(zvalue == &zcopy)) {
+                        zval_dtor(&zcopy);
+                    }
+
+                    ZVAL_STRINGL(&zcopy, sub, sublen);
                     efree(sub);
-                    zvalue = zcopy_p;
+
+                    zvalue = &zcopy;
                 }
             }
 
@@ -1299,8 +1264,8 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
                 return FAILURE;
             }
 
-            if (UNEXPECTED(zvalue == zcopy_p)) {
-                zval_dtor(zcopy_p);
+            if (UNEXPECTED(zvalue == &zcopy)) {
+                zval_dtor(&zcopy);
             }
 
             if (RFC_OK != RfcSetChars(dh, name, strU, strU16len, (RFC_ERROR_INFO*)err)) {
@@ -1653,7 +1618,7 @@ static int sap_export_structure(RFC_STRUCTURE_HANDLE sh, RFC_TYPE_DESC_HANDLE td
         RFC_FIELD_DESC field;
         char *fname;
         int fnamelen;
-        zval *pfval = _NEWZVAL;
+        zval pfval;
 
         if (RFC_OK != RfcGetFieldDescByIndex(tdh, i, &field, (RFC_ERROR_INFO*)err)) {
             SAP_ERR_RETURN_FAILURE(err, "RfcGetFieldDescByIndex");
@@ -1663,17 +1628,13 @@ static int sap_export_structure(RFC_STRUCTURE_HANDLE sh, RFC_TYPE_DESC_HANDLE td
             return FAILURE;
         }
 
-        pfval = zend_hash_str_add_new(Z_ARRVAL_P(rv), fname, fnamelen, pfval);
-
-        efree(fname);
-
-        if (NULL == pfval) { /* Out of memory, full table etc... */
-            break;
-        }
-
-        if (SUCCESS != sap_export(sh, field.name, field.type, field.typeDescHandle, field.nucLength, pfval, strTrimType, err)) {
+        if (SUCCESS != sap_export(sh, field.name, field.type, field.typeDescHandle, field.nucLength, &pfval, strTrimType, err)) {
             return FAILURE;
         }
+
+        zend_hash_str_add_new(Z_ARRVAL_P(rv), fname, fnamelen, &pfval);
+
+        efree(fname);
     }
 
     return SUCCESS;
@@ -1691,30 +1652,33 @@ static int sap_export_table(RFC_TABLE_HANDLE th, RFC_TYPE_DESC_HANDLE tdh, zval 
     }
 
     array_init_size(rv, rowCount);
+    zend_hash_real_init(Z_ARRVAL_P(rv), 1);
 
-    for (rc = RfcMoveToFirstRow(th, &e); rc == RFC_OK; rc = RfcMoveToNextRow(th, &e))
+    ZEND_HASH_FILL_PACKED(Z_ARRVAL_P(rv))
     {
-        RFC_STRUCTURE_HANDLE sh;
-        zval *pzrow;
+        for (rc = RfcMoveToFirstRow(th, &e); rc == RFC_OK; rc = RfcMoveToNextRow(th, &e))
+        {
+            RFC_STRUCTURE_HANDLE sh;
+            zval zrow;
 
-        if (NULL == (sh = RfcGetCurrentRow(th, (RFC_ERROR_INFO*)err))) {
-            SAP_ERR_RETURN_FAILURE(err, "RfcGetCurrentRow");
-        }
+            if (NULL == (sh = RfcGetCurrentRow(th, (RFC_ERROR_INFO*)err))) {
+                SAP_ERR_RETURN_FAILURE(err, "RfcGetCurrentRow");
+            }
 
-        
-        if (!(pzrow = zend_hash_next_index_insert_new(Z_ARRVAL_P(rv), _NEWZVAL))) { /* Out of memory, full hashtable etc... */
-            break;
-        }
+            if (SUCCESS != sap_export_structure(sh, tdh, &zrow, strTrimType, err)) {
+                return FAILURE;
+            }
 
-        if (SUCCESS != sap_export_structure(sh, tdh, pzrow, strTrimType, err TSRMLS_CC)) {
-            return FAILURE;
+            ZEND_HASH_FILL_ADD(&zrow);
         }
     }
+    ZEND_HASH_FILL_END();
+    
 
     return retval;
 }
 
-static int sap_export(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_TYPE_DESC_HANDLE tdh, unsigned int length, zval *rv, TRIM_TYPE strTrimType, SAPRFC_ERROR_INFO *err TSRMLS_DC)
+static int sap_export(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_TYPE_DESC_HANDLE tdh, unsigned int length, zval *rv, TRIM_TYPE strTrimType, SAPRFC_ERROR_INFO *err)
 {
     switch (type)
     {
@@ -1726,7 +1690,7 @@ static int sap_export(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_
                 SAP_ERR_RETURN_FAILURE(err, "RfcGetTable");
             }
 
-            return sap_export_table(th, tdh, rv, strTrimType, err TSRMLS_CC);
+            return sap_export_table(th, tdh, rv, strTrimType, err);
         }
         case RFCTYPE_STRUCTURE:
         {
@@ -1736,15 +1700,15 @@ static int sap_export(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE type, RFC_
                 SAP_ERR_RETURN_FAILURE(err, "RfcGetTable");
             }
 
-            return sap_export_structure(sh, tdh, rv, strTrimType, err TSRMLS_CC);
+            return sap_export_structure(sh, tdh, rv, strTrimType, err);
         }
         default: {
-            return sap_export_scalar(dh, name, type, length, rv, strTrimType, err TSRMLS_CC);
+            return sap_export_scalar(dh, name, type, length, rv, strTrimType, err);
         }
     }
 }
 
-static php_sap_function * sap_fetch_function(char *name, int nameLen, php_sap_connection *connection, SAPRFC_ERROR_INFO *err TSRMLS_DC)
+static php_sap_function * sap_fetch_function(char *name, int nameLen, php_sap_connection *connection, SAPRFC_ERROR_INFO *err)
 {
     SAP_UC *nameU;
     unsigned int nameUlen;
@@ -1770,7 +1734,7 @@ static php_sap_function * sap_fetch_function(char *name, int nameLen, php_sap_co
         SAP_ERR_RETURN_NULL(err, "RfcGetFunctionDesc");
     }
 
-    return sap_create_function_from_descr_handle(fdh, err TSRMLS_CC);
+    return sap_create_function_from_descr_handle(fdh, err);
 }
 
 static int sap_function_invoke(php_sap_function *function, php_sap_connection *connection, HashTable *imports, HashTable *exports, TRIM_TYPE strTrimType, SAPRFC_ERROR_INFO *err)
@@ -1812,19 +1776,17 @@ static int sap_function_invoke(php_sap_function *function, php_sap_connection *c
 
     ZEND_HASH_FOREACH_STR_KEY_PTR(function->params, pkey, sp)
     {
-        zval *ev;
+        zval ev;
 
         if (!(sp->param.direction & RFC_EXPORT) || sp->state == SAPRFC_PARAM_INACTIVE) {
             continue;
         }
         
-        if (NULL == (ev = zend_hash_add(exports, pkey, _NEWZVAL))) { /* out of memory, full hashtable etc */
-            break;
-        }
-
-        if (SUCCESS != sap_export(fh, sp->param.name, sp->param.type, sp->param.typeDescHandle, sp->param.nucLength, ev, strTrimType, err)) {
+        if (SUCCESS != sap_export(fh, sp->param.name, sp->param.type, sp->param.typeDescHandle, sp->param.nucLength, &ev, strTrimType, err)) {
             return FAILURE;
         }
+
+        zend_hash_add(exports, pkey, &ev);
     }
     ZEND_HASH_FOREACH_END();
 
@@ -1832,16 +1794,10 @@ static int sap_function_invoke(php_sap_function *function, php_sap_connection *c
 
     return SUCCESS;
 }
+/* }}} */
 
-/**
- * Creates a connection to a R/3 backend system
- * 
- * @param array $logonParameters
- * 
- * @return resource
- *
- * @throws SapCommunicationException
- */
+/* PHP functions */
+/* {{{ */
 PHP_FUNCTION(sap_connect)
 {
     HashTable *lparams = NULL;
@@ -1874,18 +1830,6 @@ PHP_FUNCTION(sap_connect)
     ZVAL_RES(return_value, zend_register_resource(crsrc, le_php_sap_connection));
 }
 
-/**
- * Invokes a remote function module to a backend system
- *
- * @param string        $name       remote function module's name
- * @param resource      $connection SAP RFC connection
- * @param array|null    $imports    IMPORT/CHANGING/TABLE parameters
- *
- * @return array|null               EXPORT/CHANGING/TABLE parameters
- *
- * @throws InvalidArgumentException
- * @throws SapException
- */
 PHP_FUNCTION(sap_invoke_function)
 {
     zend_string *name = NULL;
@@ -1941,70 +1885,76 @@ PHP_FUNCTION(sap_invoke_function)
         return;
     }
 }
+/* }}} */
 
+/* SapException methods */
+/* {{{ */
 PHP_METHOD(SapException, getMessageKey)
 {
-    zval *zMessageKey = sap_read_property("KEY");
+    zval *zMessageKey = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "KEY", sizeof("KEY") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageKey, 1, 0);
+    RETURN_ZVAL(zMessageKey, 0, 0);
 }
 
 PHP_METHOD(SapException, getMessageType)
 {
-    zval *zMessageType = sap_read_property("MSGTY");
+    zval *zMessageType = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGTY", sizeof("MSGTY") - 1, 0, NULL);
     
-    RETURN_ZVAL(zMessageType, 1, 0);
+    RETURN_ZVAL(zMessageType, 0, 0);
 }
 
 PHP_METHOD(SapException, getMessageId)
 {
-    zval *zMessageId = sap_read_property("MSGID"); 
+    zval *zMessageId = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGID", sizeof("MSGID") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageId, 1, 0);
+    RETURN_ZVAL(zMessageId, 0, 0);
 }
 
 PHP_METHOD(SapException, getMessageNumber)
 {
-    zval *zMessageNumber = sap_read_property("MSGNO"); 
+    zval *zMessageNumber = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGNO", sizeof("MSGNO") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageNumber, 1, 0);
+    RETURN_ZVAL(zMessageNumber, 0, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar1)
 {
-    zval *zMessageVar1 = sap_read_property("MSGV1"); 
+    zval *zMessageVar1 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV1", sizeof("MSGV1") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar1, 1, 0);
+    RETURN_ZVAL(zMessageVar1, 0, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar2)
 {
-    zval *zMessageVar2 = sap_read_property("MSGV2"); 
+    zval *zMessageVar2 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV2", sizeof("MSGV2") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar2, 1, 0);
+    RETURN_ZVAL(zMessageVar2, 0, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar3)
 {
-    zval *zMessageVar3 = sap_read_property("MSGV3"); 
+    zval *zMessageVar3 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV3", sizeof("MSGV3") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar3, 1, 0);
+    RETURN_ZVAL(zMessageVar3, 0, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar4)
 {
-    zval *zMessageVar4 = sap_read_property("MSGV4"); 
+    zval *zMessageVar4 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV4", sizeof("MSGV4") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar4, 1, 0);
+    RETURN_ZVAL(zMessageVar4, 0, 0);
 }
 
 PHP_METHOD(SapException, getNwSdkFunction)
 {
-    zval *zNwSdkFunction = sap_read_property("nwsdkfunction"); 
+    zval *zNwSdkFunction = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "nwsdkfunction", sizeof("nwsdkfunction") - 1, 0, NULL);
 
-    RETURN_ZVAL(zNwSdkFunction, 1, 0);
+    RETURN_ZVAL(zNwSdkFunction, 0, 0);
 }
+/* }}} */
 
+/* Sap methods */
+/* {{{ */
 PHP_METHOD(Sap, __construct)
 {
     zval *zlparams = NULL;
@@ -2018,7 +1968,8 @@ PHP_METHOD(Sap, __construct)
     {
         zval __args, rv;
 
-        array_init(&__args);
+        array_init_size(&__args, 1);
+
         zend_hash_next_index_insert(Z_ARRVAL(__args), zlparams);
 
         sap_call_object_method(getThis(), Z_OBJCE_P(getThis()), "connect", NULL, &__args, &rv);
@@ -2157,8 +2108,8 @@ PHP_METHOD(Sap, fetchFunction)
     ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 3)
         Z_PARAM_ZVAL(zfunction)
         Z_PARAM_OPTIONAL
-        Z_PARAM_CLASS(fce)
-        Z_PARAM_ARRAY(zargs)
+        Z_PARAM_CLASS_EX(fce, 0, 0)
+        Z_PARAM_ARRAY_EX(zargs, 1, 0)
     ZEND_PARSE_PARAMETERS_END();
 
     if (NULL == intern->connection) {
@@ -2254,7 +2205,7 @@ PHP_METHOD(Sap, fetchFunction)
             const char *constructor_func_name = ZSTR_VAL(fce->constructor->common.function_name);
             zval rv;
 
-            retval = sap_call_object_method(return_value, fce, constructor_func_name, fce->constructor, zargs, &rv TSRMLS_CC);
+            retval = sap_call_object_method(return_value, fce, constructor_func_name, fce->constructor, zargs, &rv);
 
             /* we are not interested in constructor's return value */
             zval_ptr_dtor(&rv);
@@ -2423,7 +2374,10 @@ PHP_METHOD(Sap, getAttributes)
         efree(utf8);
     }
 }
+/* }}} */
 
+/* SapFunction methods */
+/* {{{ */
 PHP_METHOD(SapFunction, getName)
 {
     sap_function *intern;
@@ -2574,18 +2528,20 @@ PHP_METHOD(SapFunction, getParameters)
     }
 
     array_init_size(return_value, zend_hash_num_elements(intern->function_descr->params));
+    zend_hash_real_init(Z_ARRVAL_P(return_value), 1);
 
-    ZEND_HASH_FOREACH_STR_KEY(intern->function_descr->params, pkey)
+    ZEND_HASH_FILL_PACKED(Z_ARRVAL_P(return_value))
     {
-        zval zpkey;
+        ZEND_HASH_FOREACH_STR_KEY(intern->function_descr->params, pkey)
+        {
+            zval zpkey;
 
-        ZVAL_STR_COPY(&zpkey, pkey);
-        
-        if (NULL == zend_hash_next_index_insert(Z_ARRVAL_P(return_value), &zpkey)) {
-            zval_ptr_dtor(&zpkey);
+            ZVAL_STR_COPY(&zpkey, pkey);
+            ZEND_HASH_FILL_ADD(&zpkey);
         }
+        ZEND_HASH_FOREACH_END();
     }
-    ZEND_HASH_FOREACH_END();
+    ZEND_HASH_FILL_END();
 }
 
 PHP_METHOD(SapFunction, getTypeName)
@@ -2641,7 +2597,10 @@ PHP_METHOD(SapFunction, __toString)
 {
     sap_call_object_method(getThis(), Z_OBJCE_P(getThis()), "getname", NULL, NULL, return_value);
 }
+/* }}} */
 
+/* SapRfcReadTable methods */
+/* {{{ */
 PHP_METHOD(SapRfcReadTable, getName)
 {
     RETURN_STRING("RFC_READ_TABLE");
@@ -2650,324 +2609,360 @@ PHP_METHOD(SapRfcReadTable, getName)
 PHP_METHOD(SapRfcReadTable, select)
 {
     zval *zfields, *zfieldshelper = NULL;
-    char *tableName;
-    int tableNameLen;
-    zval *zwhere = NULL;
-    int rowCount = 0;
-    int offset = 0;
+    zend_string *tableName;
+    HashTable *htWhere = NULL;
+    zend_long rowCount = 0;
+    zend_long offset = 0;
     zend_bool rtrim = PHP_SAP_GLOBALS(rtrim_export_strings);
-    zval __invoke_args;
-    zval *pzimports;
+    zend_bool rtrimIsNull = 1;
+    HashTable imports, exports;
+    sap_function *intern = sap_get_function_object(getThis());
 
-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "zs|allb", &zfields, &tableName, &tableNameLen, &zwhere, &rowCount, &offset, &rtrim) == FAILURE) {
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 2, 6)
+        Z_PARAM_ZVAL(zfields)
+        Z_PARAM_STR(tableName)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_ARRAY_HT_EX(htWhere, 1, 0)
+        Z_PARAM_LONG(rowCount)
+        Z_PARAM_LONG(offset)
+        Z_PARAM_BOOL_EX(rtrim, rtrimIsNull, 1, 0)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (Z_TYPE_P(zfields) != IS_NULL && Z_TYPE_P(zfields) != IS_ARRAY && Z_TYPE_P(zfields) != IS_STRING) {
+        zend_throw_exception_ex(
+            zend_ce_type_error,
+            -1,
+            "Argument 1 passed to SapRfcReadTable::select() must be of the type %s or %s or %s, %s given",
+            zend_get_type_by_const(IS_STRING),
+            zend_get_type_by_const(IS_ARRAY),
+            zend_get_type_by_const(IS_NULL),
+            zend_get_type_by_const(Z_TYPE_P(zfields))
+        );
         return;
     }
 
-    /* The array of arguments that will be used to call the __invoke method of this SapRfcReadTable object */
-    array_init(&__invoke_args);
+    if (Z_TYPE_P(zfields) == IS_STRING && Z_STRLEN_P(zfields) == 0) {
+        zend_throw_exception(spl_ce_InvalidArgumentException, "Argument 1 passed to SapRfcReadTable::select() must not be an empty string", -1);
+        return;
+    }
+    else if (Z_TYPE_P(zfields) == IS_ARRAY)
+    {
+        zval *zfieldname;
 
-    /* The first (and only) argument of __invoke_args array, will be the RFC_READ_TABLE import parameters */
-    if (NULL == (pzimports = zend_hash_next_index_insert_new(Z_ARRVAL(__invoke_args), _NEWZVAL))) {
-        /* Appending a zval to __invoke_args array failed */
-        zval_dtor(&__invoke_args);
+        ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(zfields), zfieldname)
+        {
+            /* Field names must be strings */
+            if (Z_TYPE_P(zfieldname) != IS_STRING) {
+                zend_throw_exception_ex(
+                    spl_ce_InvalidArgumentException,
+                    -1,
+                    "Field names must be strings (%s detected)",
+                    zend_get_type_by_const(Z_TYPE_P(zfieldname))
+                );
+                return;
+            }
+        }
+        ZEND_HASH_FOREACH_END();
+    }
+
+    if (tableName->len == 0) {
+        zend_throw_exception(spl_ce_InvalidArgumentException, "Argument 2 passed to SapRfcReadTable::select() must not be an empty string", -1);
         return;
     }
 
-    /* Initilize the import parameters array */
-    array_init(pzimports);
+    if (rowCount < 0) {
+        zend_throw_exception_ex(
+            spl_ce_InvalidArgumentException,
+            -1,
+            "Argument 4 passed to SapRfcReadTable::select() must not be negative (%d)",
+            rowCount
+        );
+        return;
+    }
+
+    if (offset < 0) {
+        zend_throw_exception_ex(
+            spl_ce_InvalidArgumentException,
+            -1,
+            "Argument 5 passed to SapRfcReadTable::select() must not be negative (%d)",
+            offset
+        );
+        return;
+    }
+
+    if (NULL == intern->connection) {
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_NO_CONNECTION, -1);
+        return;
+    }
+
+    if (NULL == intern->function_descr) {
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED, -1);
+        return;
+    }
+
+    zend_hash_init(&imports, 8, NULL, ZVAL_PTR_DTOR, 0);
 
     /* Create the QUERY_TABLE parameter */
     {
-        zval *zparam_QUERY_TABLE = zend_hash_str_add_new(Z_ARRVAL_P(pzimports), "QUERY_TABLE", sizeof("QUERY_TABLE") - 1, _NEWZVAL);
+        zval zparam_QUERY_TABLE;
 
-        if (NULL != zparam_QUERY_TABLE) {
-            ZVAL_STRINGL(zparam_QUERY_TABLE, tableName, tableNameLen);
-        }
+        ZVAL_STR_COPY(&zparam_QUERY_TABLE, tableName);
+
+        zend_hash_str_add_new(&imports, "QUERY_TABLE", sizeof("QUERY_TABLE") - 1, &zparam_QUERY_TABLE);
     }
 
     /* Create the DELIMITER parameter and set it to "" */
     {
-        zval *zparam_DELIMITER = zend_hash_str_add_new(Z_ARRVAL_P(pzimports), "DELIMITER", sizeof("DELIMITER") - 1, _NEWZVAL);
+        zval zparam_DELIMITER;
 
-        if (NULL != zparam_DELIMITER) {
-            ZVAL_STRING(zparam_DELIMITER, "");
-        }
+        ZVAL_STRING(&zparam_DELIMITER, "");
+
+        zend_hash_str_add_new(&imports, "DELIMITER", sizeof("DELIMITER") - 1, &zparam_DELIMITER);
     }
 
     /* Create the ROWCOUNT parameter */
     if (rowCount > 0)
     {
-        zval *zparam_ROWCOUNT = zend_hash_str_add_new(Z_ARRVAL_P(pzimports), "ROWCOUNT", sizeof("ROWCOUNT") - 1, _NEWZVAL);
+        zval zparam_ROWCOUNT;
 
-        if (NULL != zparam_ROWCOUNT) {
-            ZVAL_LONG(zparam_ROWCOUNT, rowCount);
-        }
+        ZVAL_LONG(&zparam_ROWCOUNT, rowCount);
+
+        zend_hash_str_add_new(&imports, "ROWCOUNT", sizeof("ROWCOUNT") - 1, &zparam_ROWCOUNT);
     }
 
     /* Create the ROWSKIPS parameter */
     if (offset > 0)
     {
-        zval *zparam_ROWSKIPS = zend_hash_str_add_new(Z_ARRVAL_P(pzimports), "ROWSKIPS", sizeof("ROWSKIPS") - 1, _NEWZVAL);
+        zval zparam_ROWSKIPS;
 
-        if (NULL != zparam_ROWSKIPS) {
-            ZVAL_LONG(zparam_ROWSKIPS, offset);
-        }
+        ZVAL_LONG(&zparam_ROWSKIPS, offset);
+
+        zend_hash_str_add_new(&imports, "ROWSKIPS", sizeof("ROWSKIPS") - 1, &zparam_ROWSKIPS);
     }
 
-    /* Create the FIELDS parameter */
-    {
-        zval *zparam_FIELDS = zend_hash_str_add_new(Z_ARRVAL_P(pzimports), "FIELDS", sizeof("FIELDS") - 1, _NEWZVAL);
+    /**
+     * Create the FIELDS parameter
+     *
+     * If user provided NULL or an SQL STAR (*) string or an empty array as <query fields>
+     * then we don't send the FIELDS param  in order to select all fields
+     */
+    if (Z_TYPE_P(zfields) != IS_NULL &&
+        (Z_TYPE_P(zfields) != IS_ARRAY || zend_hash_num_elements(Z_ARRVAL_P(zfields)) > 0) &&
+        (Z_TYPE_P(zfields) != IS_STRING || 0 != memcmp(Z_STRVAL_P(zfields), "*", sizeof("*") - 1))
+    ) {
+        zval zparam_FIELDS;
+        int zparam_FIELDS_size = Z_TYPE_P(zfields) == IS_STRING
+            ? 1
+            : zend_hash_num_elements(Z_ARRVAL_P(zfields));
 
-        if (NULL != zparam_FIELDS)
+        /* parameter FIELDS is of type RFCTYPE_TABLE */
+        array_init_size(&zparam_FIELDS, zparam_FIELDS_size);
+        zend_hash_real_init(Z_ARRVAL(zparam_FIELDS), 1);
+
+        if (Z_TYPE_P(zfields) == IS_STRING)
         {
-            /* FIELDS parameter is a table */
-            array_init(zparam_FIELDS);
+            zval zparam_FIELDS_row, zfieldname;
 
-            if (Z_TYPE_P(zfields) == IS_STRING)
+            array_init_size(&zparam_FIELDS_row, 1);
+
+            ZVAL_STR_COPY(&zfieldname, Z_STR_P(zfields));
+
+            zend_hash_str_add(Z_ARRVAL(zparam_FIELDS_row), "FIELDNAME", sizeof("FIELDNAME") - 1, &zfieldname);
+            zend_hash_next_index_insert_new(Z_ARRVAL(zparam_FIELDS), &zparam_FIELDS_row);
+        }
+        /* Append requested fields to the FIELDS table parameter */
+        else if (Z_TYPE_P(zfields) == IS_ARRAY)
+        {
+            ulong h;
+            zend_string *alias;
+            zval *zfieldname;
+
+            ZEND_HASH_FILL_PACKED(Z_ARRVAL(zparam_FIELDS))
             {
-                zval *zfieldname = zfields;
-
-                if (Z_STRLEN_P(zfieldname) == 0) {
-                    zend_throw_exception(spl_ce_InvalidArgumentException, "SapRfcReadTable::select() : Empty string as query field is not allowed", -1);
-                    return;
-                }
-
-                /**
-                * If user provided a string as query fields then we will convert it to array as follows:
-                * 1) if the string equals to sql star (*), we will convert to an empty array,
-                *    as an empty FIELDS parameter will select all table's fields
-                * 2) otherwise we will convert to an array with only one element (the provided field name)
-                */
-                
-                zfields = zfieldshelper = ecalloc(1, sizeof(zval));
-
-                array_init(zfields);
-
-                if (0 != memcmp(Z_STRVAL_P(zfieldname), "*", sizeof("*") - 1)) {
-                    zend_hash_next_index_insert(Z_ARRVAL_P(zfields), zfieldname);
-                    Z_ADDREF_P(zfieldname);
-                }
-            }
-            else if (Z_TYPE_P(zfields) != IS_ARRAY)
-            {
-                zend_throw_exception_ex(
-                    spl_ce_InvalidArgumentException,
-                    -1,
-                    "Argument 1 of SapRfcReadTable::select() must be a string or array. %s given",
-                    zend_get_type_by_const(Z_TYPE_P(zfields))
-                );
-
-                return;
-            }
-
-            /* Append requested fields to the FIELDS table parameter */
-            do
-            {
-                ulong h;
-                zend_string *alias;
-                zval *zfieldname;
-
                 ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(zfields), h, alias, zfieldname)
                 {
-                    zval *zfieldrow;
-                    zval zalias;
+                    zval zparam_FIELDS_row, zrealfieldname;
 
-                    /* Field names must be strings */
-                    if (Z_TYPE_P(zfieldname) != IS_STRING) {
-                        zend_throw_exception_ex(
-                            spl_ce_LogicException, 
-                            -1, 
-                            "Field names must be strings (%s detected)", 
-                            zend_get_type_by_const(Z_TYPE_P(zfieldname))
-                        );
-                        return;
-                    }
+                    /* Each FIELDS table row, is an array itself */
+                    array_init_size(&zparam_FIELDS_row, 1);
 
                     /**
                     * If a string key is set for the current element then this will be used as field name
-                    * and the zfieldname will contain the alias name that will be used later on export
+                    * and zfieldname will contain the alias name that will be used later on export
                     */
-                    if (alias)
-                    {
-                        ZVAL_STRINGL(&zalias, alias->val, alias->len);
-
-                        /* set reference count to zero for now, it will be increased later */
-                        Z_DELREF_P(&zalias);
-
-                        /* replace field's name */
-                        zfieldname = &zalias;
+                    if (alias) {
+                        ZVAL_STR_COPY(&zrealfieldname, alias);
                     }
+                    else {
+                        ZVAL_STR_COPY(&zrealfieldname, Z_STR_P(zfieldname));
+                    }
+
+                    zend_hash_str_add(Z_ARRVAL(zparam_FIELDS_row), "FIELDNAME", sizeof("FIELDNAME") - 1, &zrealfieldname);
 
                     /* Append a new row to FIELDS table */
-                    if (NULL != (zfieldrow = zend_hash_next_index_insert_new(Z_ARRVAL_P(zparam_FIELDS), _NEWZVAL)))
-                    {
-                        /* Each FIELDS table row, is an array itself */
-                        array_init_size(zfieldrow, 1);
-
-                        if (zend_hash_str_add(Z_ARRVAL_P(zfieldrow), "FIELDNAME", sizeof("FIELDNAME") - 1, zfieldname)) {
-                            Z_ADDREF_P(zfieldname);
-                        }
-                    }
+                    ZEND_HASH_FILL_ADD(&zparam_FIELDS_row);
                 }
                 ZEND_HASH_FOREACH_END();
-            } while (0);
+            }
+            ZEND_HASH_FILL_END();
         }
+
+        zend_hash_str_add_new(&imports, "FIELDS", sizeof("FIELDS") - 1, &zparam_FIELDS);
     }
 
     /* Create the 'where' clause (OPTIONS parameter) */
-    if (NULL != zwhere && zend_hash_num_elements(Z_ARRVAL_P(zwhere)) > 0)
+    if (NULL != htWhere && zend_hash_num_elements(htWhere) > 0)
     {
+        zval zparam_OPTIONS, *zwval;
         ulong h;
         zend_string *wfield;
-        zval *zwval;
-        zval *zparam_OPTIONS = zend_hash_str_add_new(Z_ARRVAL_P(pzimports), "OPTIONS", sizeof("OPTIONS") - 1, _NEWZVAL);
 
-        if (NULL != zparam_OPTIONS)
+        /* Parameter OPTIONS is of type RFCTYPE_TABLE */
+        array_init_size(&zparam_OPTIONS, zend_hash_num_elements(htWhere));
+        zend_hash_real_init(Z_ARRVAL(zparam_OPTIONS), 1);
+
+        ZEND_HASH_FILL_PACKED(Z_ARRVAL(zparam_OPTIONS))
         {
-            /* Parameter OPTIONS is a table */
-            array_init(zparam_OPTIONS);
-
-            ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(zwhere), h, wfield, zwval)
+            ZEND_HASH_FOREACH_KEY_VAL(htWhere, h, wfield, zwval)
             {
-                zval *zoptionsrow = NULL;
-                zval *ztextfield = NULL;
-                zval zwstrval, *pzwstrval = &zwstrval;
+                zval zparam_OPTIONS_row, zparam_OPTIONS_row_text;
 
-                /* append new row to table 'OPTIONS' */
-                zoptionsrow = zend_hash_next_index_insert_new(Z_ARRVAL_P(zparam_OPTIONS), _NEWZVAL);
-
-                if (NULL == zoptionsrow) {
-                    break;
-                }
-
-                array_init_size(zoptionsrow, 1);
-
-                /* append field 'TEXT' to the new row */
-                ztextfield = zend_hash_str_add_new(Z_ARRVAL_P(zoptionsrow), "TEXT", sizeof("TEXT") - 1, _NEWZVAL);
-
-                if (NULL == ztextfield) {
-                    break;
-                }
+                /* every row of OPTIONS table is an array (RFCTYPE_STRUCTURE) with one element (field TEXT of type string) */
+                array_init_size(&zparam_OPTIONS_row, 1);
 
                 /* element's value must be a string */
-                if (Z_TYPE_P(zwval) != IS_STRING)
+                if (UNEXPECTED(Z_TYPE_P(zwval) != IS_STRING))
                 {
-                    ZVAL_ZVAL(pzwstrval, zwval, 1, 0);
-                    convert_to_string(pzwstrval);
-                    zwval = pzwstrval;
+                    ZVAL_ZVAL(&zparam_OPTIONS_row_text, zwval, 1, 0);
+                    convert_to_string(&zparam_OPTIONS_row_text);
+                    zwval = &zparam_OPTIONS_row_text;
+                }
+                else {
+                    ZVAL_STR_COPY(&zparam_OPTIONS_row_text, Z_STR_P(zwval));
                 }
 
-                if (NULL != wfield) /* string key: field => val */
+                /* string key: field => val */
+                if (NULL != wfield)
                 {
                     char optionText[300];
                     int optionTextLen;
-                    int hasRows = zend_hash_num_elements(Z_ARRVAL_P(zparam_OPTIONS)) > 1;
+                    int hasRows = zend_hash_num_elements(Z_ARRVAL(zparam_OPTIONS)) > 1;
 
                     /* "field EQ 'val'" */
-                    optionTextLen = snprintf(optionText, sizeof(optionText), "%s%s EQ '%s'", hasRows ? "AND " : "", wfield->val, Z_STRVAL_P(zwval));
+                    optionTextLen = snprintf(
+                        optionText,
+                        sizeof(optionText),
+                        "%s%s EQ '%s'",
+                        hasRows ? "AND " : "",
+                        wfield->val,
+                        Z_STRVAL(zparam_OPTIONS_row_text)
+                    );
 
-                    ZVAL_STRINGL(ztextfield, optionText, optionTextLen);
-                }
-                else { /* custom WHERE clause, append 'as is' */
-                    ZVAL_ZVAL(ztextfield, zwval, 1, 0);
+                    zval_dtor(&zparam_OPTIONS_row_text);
+
+                    ZVAL_STRINGL(&zparam_OPTIONS_row_text, optionText, optionTextLen);
                 }
 
-                if (UNEXPECTED(zwval == pzwstrval)) {
-                    zval_ptr_dtor(pzwstrval);
-                }
+                zend_hash_str_add_new(Z_ARRVAL(zparam_OPTIONS_row), "TEXT", sizeof("TEXT") - 1, &zparam_OPTIONS_row_text);
+                /* Append a new row to OPTIONS table */
+                ZEND_HASH_FILL_ADD(&zparam_OPTIONS_row);
             }
             ZEND_HASH_FOREACH_END();
         }
+        ZEND_HASH_FILL_END();
+
+        zend_hash_str_add_new(&imports, "OPTIONS", sizeof("OPTIONS") - 1, &zparam_OPTIONS);
     }
 
     /* Call RFC_READ_TABLE */
     {
         int result;
-        zval zresult;
+        SAPRFC_ERROR_INFO err;
 
-        result = sap_call_object_method(getThis(), sap_ce_SapFunction, "__invoke", NULL, &__invoke_args, &zresult TSRMLS_CC);
+        zend_hash_init(&exports, 3, NULL, ZVAL_PTR_DTOR, 0);
 
-        zval_dtor(&__invoke_args);
+        result = sap_function_invoke(intern->function_descr, intern->connection, &imports, &exports, TRIM_NONE, &err);
+
+        zend_hash_destroy(&imports);
 
         if (SUCCESS != result) {
-            zend_error_noreturn(E_ERROR, "__invoke method invokation failed");
-        }
-
-        if (Z_TYPE(zresult) != IS_ARRAY) {
-            zend_throw_exception_ex(
-                spl_ce_LogicException, 
-                -1, 
-                "Expected an array return value from __invoke (got %s)", 
-                zend_get_type_by_const(Z_TYPE(zresult))
-            );
+            zval ex = sap_error_to_exception(&err, NULL);
+            zend_throw_exception_object(&ex);
             return;
         }
 
-        /* Convert the DATA table to a PHP readable array */
+        /* Convert the DATA table to a PHP result array */
         {
             zval *zresdata;
             zval *zresfields;
 
-            if (NULL != (zresdata = zend_hash_str_find(Z_ARRVAL(zresult), "DATA", sizeof("DATA") - 1))
+            if (NULL != (zresdata = zend_hash_str_find(&exports, "DATA", sizeof("DATA") - 1))
                 && Z_TYPE_P(zresdata) == IS_ARRAY
-                && NULL != (zresfields = zend_hash_str_find(Z_ARRVAL(zresult), "FIELDS", sizeof("FIELDS") - 1))
+                && NULL != (zresfields = zend_hash_str_find(&exports, "FIELDS", sizeof("FIELDS") - 1))
                 && Z_TYPE_P(zresfields) == IS_ARRAY
             ) {
                 zval *zdatarow;
 
+                /* return array will have the same size as the DATA table */
                 array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL_P(zresdata)));
+                zend_hash_real_init(Z_ARRVAL_P(return_value), 1);
 
-                ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(zresdata), zdatarow)
+                ZEND_HASH_FILL_PACKED(Z_ARRVAL_P(return_value))
                 {
-                    zval *zresow, *wa, *zfieldrow;
-
-                    wa = zend_hash_str_find(Z_ARRVAL_P(zdatarow), "WA", sizeof("WA") - 1);
-
-                    /* Fix bug: wa might be NULL also */
-                    if (NULL == wa || (Z_TYPE_P(wa) != IS_STRING && Z_TYPE_P(wa) != IS_NULL)) {
-                        continue;
-                    }
-
-                    if (NULL == (zresow = zend_hash_next_index_insert_new(Z_ARRVAL_P(return_value), _NEWZVAL))) {
-                        continue;
-                    }
-
-                    array_init_size(zresow, zend_hash_num_elements(Z_ARRVAL_P(zresfields)));
-
-                    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(zresfields), zfieldrow)
+                    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(zresdata), zdatarow)
                     {
-                        zval *zfieldname, *zfieldoffset, *zfieldlength, *zfieldtype;
-                        zval zlongoffset, zlonglength;
+                        zval zresrow, *wa, *zfieldrow;
 
-                        if (Z_TYPE_P(zfieldrow) != IS_ARRAY) {
+                        if (Z_TYPE_P(zdatarow) != IS_ARRAY) {
                             continue; /* This should not happen */
                         }
 
-                        if (NULL != (zfieldname = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "FIELDNAME", sizeof("FIELDNAME") - 1))
-                            && Z_TYPE_P(zfieldname) == IS_STRING
-                            && (zfieldoffset = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "OFFSET", sizeof("OFFSET") - 1))
-                            && (zfieldlength = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "LENGTH", sizeof("LENGTH") - 1))
-                            && (zfieldtype = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "TYPE", sizeof("TYPE") - 1))
-                            && Z_TYPE_P(zfieldtype) == IS_STRING)
+                        wa = zend_hash_str_find(Z_ARRVAL_P(zdatarow), "WA", sizeof("WA") - 1);
+
+                        /* Fix bug: wa might be NULL also */
+                        if (NULL == wa || (Z_TYPE_P(wa) != IS_STRING && Z_TYPE_P(wa) != IS_NULL)) {
+                            continue;
+                        }
+
+                        array_init_size(&zresrow, zend_hash_num_elements(Z_ARRVAL_P(zresfields)));
+
+                        ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(zresfields), zfieldrow)
                         {
-                            zval *zfieldvalue;
-                            zval *zfieldalias;
+                            zval *zfieldname, *zfieldoffset, *zfieldlength, *zfieldtype;
+                            zval zlongoffset, zlonglength;
 
-                            ZVAL_ZVAL(&zlongoffset, zfieldoffset, 1, 0);
-                            convert_to_long(&zlongoffset);
-
-                            ZVAL_ZVAL(&zlonglength, zfieldlength, 1, 0);
-                            convert_to_long(&zlonglength);
-
-                            if (NULL != (zfieldalias = zend_hash_find(Z_ARRVAL_P(zfields), Z_STR_P(zfieldname)))) {
-                                /* is field alias */
-                                zfieldname = zfieldalias;
+                            if (Z_TYPE_P(zfieldrow) != IS_ARRAY) {
+                                continue; /* This should not happen */
                             }
 
-                            if (NULL != (zfieldvalue = zend_hash_add_new(Z_ARRVAL_P(zresow), Z_STR_P(zfieldname), _NEWZVAL)))
+                            if (NULL != (zfieldname = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "FIELDNAME", sizeof("FIELDNAME") - 1))
+                                && Z_TYPE_P(zfieldname) == IS_STRING
+                                && (zfieldoffset = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "OFFSET", sizeof("OFFSET") - 1))
+                                && (zfieldlength = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "LENGTH", sizeof("LENGTH") - 1))
+                                && (zfieldtype = zend_hash_str_find(Z_ARRVAL_P(zfieldrow), "TYPE", sizeof("TYPE") - 1))
+                                && Z_TYPE_P(zfieldtype) == IS_STRING)
                             {
-                                char *substr;
-                                int substrlen;
+                                zval zfieldvalue, *zfieldalias;
+                                char *substr, *trimmedFieldName;
+                                int substrlen, trimmedFieldNameLen;
+
+                                /* we shoud always right-trim the FIELDNAME as it may contain spaces */
+                                utf8_trim(Z_STRVAL_P(zfieldname), Z_STRLEN_P(zfieldname), &trimmedFieldName, &trimmedFieldNameLen, TRIM_RIGHT);
+
+                                if (Z_TYPE_P(zfields) == IS_ARRAY && NULL != (zfieldalias = zend_hash_str_find(Z_ARRVAL_P(zfields), trimmedFieldName, trimmedFieldNameLen)))
+                                {
+                                    /* is field alias */
+                                    efree(trimmedFieldName);
+
+                                    trimmedFieldName = estrndup(Z_STRVAL_P(zfieldalias), Z_STRLEN_P(zfieldalias));
+                                    trimmedFieldNameLen = Z_STRLEN_P(zfieldalias);
+                                }
+
+                                ZVAL_ZVAL(&zlongoffset, zfieldoffset, 1, 0);
+                                convert_to_long(&zlongoffset);
+
+                                ZVAL_ZVAL(&zlonglength, zfieldlength, 1, 0);
+                                convert_to_long(&zlonglength);
 
                                 if (Z_TYPE_P(wa) == IS_STRING &&
                                     SUCCESS == utf8_substr(Z_STRVAL_P(wa), Z_STRLEN_P(wa), Z_LVAL(zlongoffset), Z_LVAL(zlonglength), &substr, &substrlen)
@@ -2985,26 +2980,181 @@ PHP_METHOD(SapRfcReadTable, select)
                                         substrlen = substrtrimmedlen;
                                     }
 
-                                    ZVAL_STRINGL(zfieldvalue, substr, substrlen);
+                                    ZVAL_STRINGL(&zfieldvalue, substr, substrlen);
                                     efree(substr);
                                 }
                                 else {
-                                    ZVAL_NULL(zfieldvalue);
+                                    ZVAL_NULL(&zfieldvalue);
                                 }
+
+                                zend_hash_str_add_new(Z_ARRVAL(zresrow), trimmedFieldName, trimmedFieldNameLen, &zfieldvalue);
+
+                                efree(trimmedFieldName);
                             }
                         }
+                        ZEND_HASH_FOREACH_END();
+
+                        ZEND_HASH_FILL_ADD(&zresrow);
                     }
                     ZEND_HASH_FOREACH_END();
                 }
-                ZEND_HASH_FOREACH_END();
+                ZEND_HASH_FILL_END();
             }
         }
 
-        if (result == SUCCESS) {
-            zval_ptr_dtor(&zresult);
-        }
+        zend_hash_destroy(&exports);
     }
 }
+
+PHP_METHOD(SapRfcReadTable, describe)
+{
+    zend_string *tableName;
+    HashTable *fields = NULL;
+    sap_function *intern = sap_get_function_object(getThis());
+
+    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 2)
+        Z_PARAM_STR(tableName)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_ARRAY_HT(fields)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (tableName->len == 0) {
+        zend_throw_exception_ex(
+            spl_ce_InvalidArgumentException,
+            -1,
+            "Argument 1 passed to %s::describe() must be a non-empty string",
+            Z_OBJCE_P(getThis())->name->val
+        );
+        return;
+    }
+
+    if (NULL != fields)
+    {
+        zval *zfield;
+
+        ZEND_HASH_FOREACH_VAL(fields, zfield)
+        {
+            if (Z_TYPE_P(zfield) != IS_STRING) {
+                zend_throw_exception_ex(
+                    spl_ce_InvalidArgumentException,
+                    -1,
+                    "Argument 2 passed to %s::describe() must be an array of strings, element of type %s detected",
+                    Z_OBJCE_P(getThis())->name->val,
+                    zend_get_type_by_const(Z_TYPE_P(zfield))
+                );
+                return;
+            }
+
+            if (Z_STRLEN_P(zfield) == 0) {
+                zend_throw_exception_ex(
+                    spl_ce_InvalidArgumentException,
+                    -1,
+                    "Argument 2 passed to %s::describe() must be an array of non-empty strings, empty string detected",
+                    Z_OBJCE_P(getThis())->name->val
+                );
+                return;
+            }
+        }
+        ZEND_HASH_FOREACH_END();
+    }
+
+    if (NULL == intern->connection) {
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_NO_CONNECTION, -1);
+        return;
+    }
+
+    if (NULL == intern->function_descr) {
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED, -1);
+        return;
+    }
+
+    {
+        HashTable imports, exports;
+        zval zQueryTable, zNoData, *zExportFields;
+        int result;
+        SAPRFC_ERROR_INFO err;
+
+        zend_hash_init(&imports, 4, NULL, ZVAL_PTR_DTOR, 0);
+
+        ZVAL_STR_COPY(&zQueryTable, tableName);
+        zend_hash_str_add(&imports, "QUERY_TABLE", sizeof("QUERY_TABLE") - 1, &zQueryTable);
+
+        ZVAL_STRING(&zNoData, "X");
+        zend_hash_str_add(&imports, "NO_DATA", sizeof("NO_DATA") - 1, &zNoData);
+
+        if (NULL != fields)
+        {
+            zval zfields, *zfield;
+
+            array_init_size(&zfields, zend_hash_num_elements(fields));
+            zend_hash_real_init(Z_ARRVAL(zfields), 1);
+
+            ZEND_HASH_FILL_PACKED(Z_ARRVAL(zfields))
+            {
+                ZEND_HASH_FOREACH_VAL(fields, zfield)
+                {
+                    zval zfieldrow, zfieldname;
+
+                    //fields elements have been checked to be strings
+                    ZVAL_STR_COPY(&zfieldname, Z_STR_P(zfield));
+
+                    array_init_size(&zfieldrow, 1);
+                    zend_hash_str_add(Z_ARRVAL(zfieldrow), "FIELDNAME", sizeof("FIELDNAME") - 1, &zfieldname);
+
+                    ZEND_HASH_FILL_ADD(&zfieldrow);
+                }
+                ZEND_HASH_FOREACH_END();
+            }
+            ZEND_HASH_FILL_END();
+
+            zend_hash_str_add(&imports, "FIELDS", sizeof("FIELDS") - 1, &zfields);
+        }
+
+        zend_hash_init(&exports, 3, NULL, ZVAL_PTR_DTOR, 0);
+
+        result = sap_function_invoke(intern->function_descr, intern->connection, &imports, &exports, TRIM_RIGHT, &err);
+
+        zend_hash_destroy(&imports);
+
+        if (SUCCESS != result) {
+            zval ex = sap_error_to_exception(&err, NULL);
+            zend_hash_destroy(&exports);
+            zend_throw_exception_object(&ex);
+            return;
+        }
+
+        if (NULL != (zExportFields = zend_hash_str_find(&exports, "FIELDS", sizeof("FIELDS") - 1)) && Z_TYPE_P(zExportFields) == IS_ARRAY)
+        {
+            zval *zField;
+
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(zExportFields), zField)
+            {
+                zval *zoffset, *zlength;
+
+                if (Z_TYPE_P(zField) != IS_ARRAY) {
+                    continue;
+                }
+
+                if (NULL != (zoffset = zend_hash_str_find(Z_ARRVAL_P(zField), "OFFSET", sizeof("OFFSET") - 1))) {
+                    convert_to_long(zoffset);
+                }
+
+                if (NULL != (zlength = zend_hash_str_find(Z_ARRVAL_P(zField), "LENGTH", sizeof("LENGTH") - 1))) {
+                    convert_to_long(zlength);
+                }
+            }
+            ZEND_HASH_FOREACH_END();
+
+            RETVAL_ZVAL(zExportFields, 1, 0);
+        }
+        else {
+            array_init_size(return_value, 0);
+        }
+
+        zend_hash_destroy(&exports);
+    }
+}
+/* }}} */
 
 PHP_MINIT_FUNCTION(sap)
 {
@@ -3029,15 +3179,15 @@ PHP_MINIT_FUNCTION(sap)
     INIT_CLASS_ENTRY(ce, "SapException", sap_exception_fe);
     sap_ce_SapException = zend_register_internal_class_ex(&ce, zend_ce_exception);
 
-    zend_declare_property_string(sap_ce_SapException, "MSGTY", sizeof("MSGTY") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "MSGID", sizeof("MSGID") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "MSGNO", sizeof("MSGNO") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "MSGV1", sizeof("MSGV1") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "MSGV2", sizeof("MSGV2") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "MSGV3", sizeof("MSGV3") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "MSGV4", sizeof("MSGV4") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "KEY", sizeof("KEY") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
-    zend_declare_property_string(sap_ce_SapException, "nwsdkfunction", sizeof("nwsdkfunction") - 1, "", ZEND_ACC_PROTECTED TSRMLS_CC);
+    zend_declare_property_string(sap_ce_SapException, "MSGTY", sizeof("MSGTY") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "MSGID", sizeof("MSGID") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "MSGNO", sizeof("MSGNO") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "MSGV1", sizeof("MSGV1") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "MSGV2", sizeof("MSGV2") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "MSGV3", sizeof("MSGV3") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "MSGV4", sizeof("MSGV4") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "KEY", sizeof("KEY") - 1, "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(sap_ce_SapException, "nwsdkfunction", sizeof("nwsdkfunction") - 1, "", ZEND_ACC_PROTECTED);
 
     //SapConnectionException
     INIT_CLASS_ENTRY(ce, "SapConnectionException", sap_connection_exception_fe);
@@ -3045,7 +3195,7 @@ PHP_MINIT_FUNCTION(sap)
 
     //Sap
     INIT_CLASS_ENTRY(ce, "Sap", sap_fe_Sap);
-    sap_ce_Sap = zend_register_internal_class(&ce TSRMLS_CC);
+    sap_ce_Sap = zend_register_internal_class(&ce);
 
     sap_ce_Sap->create_object = sap_object_create_object;
 
@@ -3057,7 +3207,7 @@ PHP_MINIT_FUNCTION(sap)
 
     //SapFunction
     INIT_CLASS_ENTRY(ce, "SapFunction", sap_fe_SapFunction);
-    sap_ce_SapFunction = zend_register_internal_class(&ce TSRMLS_CC);
+    sap_ce_SapFunction = zend_register_internal_class(&ce);
 
     sap_ce_SapFunction->create_object = sap_function_create_object;
 
@@ -3076,6 +3226,8 @@ PHP_MINIT_FUNCTION(sap)
 
 PHP_MSHUTDOWN_FUNCTION(sap)
 {
+    UNREGISTER_INI_ENTRIES();
+
     return SUCCESS;
 }
 
@@ -3088,13 +3240,13 @@ PHP_MINFO_FUNCTION(sap)
     SAPRFC_ERROR_INFO err;
 
     php_info_print_table_start();
-    php_info_print_table_header(2, "SAP Remote Functions call support", "enabled");
+    php_info_print_table_header(2, "SAP Remote Functions Call support", "enabled");
     php_info_print_table_row(2, "Version", PHP_SAP_VERSION);
 
     sdkversionU = RfcGetVersion(&major, &minor, &patchlevel);
 
     if (SUCCESS == sapuc_to_utf8((SAP_UC*)sdkversionU, &nwsdkversion, &nwsdkversionlen, &err)) {
-        php_info_print_table_row(2, "Nw Rfc Sdk Version", nwsdkversion);
+        php_info_print_table_row(2, "SAP NetWeaver RFC SDK Version", nwsdkversion);
         efree(nwsdkversion);
     }
 

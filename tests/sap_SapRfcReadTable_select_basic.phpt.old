@@ -1,0 +1,262 @@
+--TEST--
+SapRfcReadTable::select() basic behavior
+--SKIPIF--
+<?php
+$config = include 'config.inc';
+
+if (!$config) {
+	print 'skip connection configuration not available';
+}
+?>
+--FILE--
+<?php
+
+class CustomSapRfcReadTable extends SapRfcReadTable
+{
+	protected $lastImports;
+	
+	protected $lastTrimValue;
+	
+	public function __invoke(array $imports = null, bool $rtrim = null): array
+	{
+		$this->lastImports = $imports;
+		$this->lastTrimValue = $rtrim;
+		
+		return include 'RFC_READ_TABLE.inc';
+	}
+	
+	public function getLastImports()
+	{
+		return $this->lastImports;
+	}
+	
+	public function getLastTrimValue()
+	{
+		return $this->lastTrimValue;
+	}
+}
+
+$s = new CustomSapRfcReadTable();
+
+
+$rows = $s->select('*', 'TABLE', ['FIELD1' => 'CA', 'FIELD2' => 5, 'THIS SHOULD BE INSERTED AS IS'], 5, 2, false);
+
+var_dump($s->getLastImports());
+var_dump($s->getLastTrimValue());
+var_dump($rows);
+
+$rows = $s->select(['FIELD1', 'FIELD2'], 'TABLE', ['THIS SHOULD BE INSERTED AS IS'], 0, 0, true);
+var_dump($s->getLastImports());
+var_dump($s->getLastTrimValue()); //should always be false
+var_dump($rows);
+
+$rows = $s->select(['FIELD1' => 'ALIAS1', 'FIELD4' => 'ALIAS4'], 'TABLE', null, 0, 0, false);
+var_dump($s->getLastImports());
+var_dump($s->getLastTrimValue());
+var_dump($rows);
+
+?>
+--EXPECT--
+array(6) {
+  ["QUERY_TABLE"]=>
+  string(5) "TABLE"
+  ["DELIMITER"]=>
+  string(0) ""
+  ["ROWCOUNT"]=>
+  int(5)
+  ["ROWSKIPS"]=>
+  int(2)
+  ["FIELDS"]=>
+  array(0) {
+  }
+  ["OPTIONS"]=>
+  array(3) {
+    [0]=>
+    array(1) {
+      ["TEXT"]=>
+      string(14) "FIELD1 EQ 'CA'"
+    }
+    [1]=>
+    array(1) {
+      ["TEXT"]=>
+      string(17) "AND FIELD2 EQ '5'"
+    }
+    [2]=>
+    array(1) {
+      ["TEXT"]=>
+      string(29) "THIS SHOULD BE INSERTED AS IS"
+    }
+  }
+}
+bool(false)
+array(3) {
+  [0]=>
+  array(5) {
+    ["FIELD1"]=>
+    string(10) "ABCD      "
+    ["FIELD2"]=>
+    string(4) "56  "
+    ["FIELD3"]=>
+    string(8) "20150406"
+    ["FIELD4"]=>
+    string(6) "132044"
+    ["FIELD5"]=>
+    string(11) "5674365    "
+  }
+  [1]=>
+  array(5) {
+    ["FIELD1"]=>
+    string(10) "TESTC     "
+    ["FIELD2"]=>
+    string(4) "159 "
+    ["FIELD3"]=>
+    string(8) "20120114"
+    ["FIELD4"]=>
+    string(6) "091332"
+    ["FIELD5"]=>
+    string(11) "-1698      "
+  }
+  [2]=>
+  array(5) {
+    ["FIELD1"]=>
+    string(10) "  OTH     "
+    ["FIELD2"]=>
+    string(4) "0   "
+    ["FIELD3"]=>
+    string(8) "19850828"
+    ["FIELD4"]=>
+    string(6) "221032"
+    ["FIELD5"]=>
+    string(11) "-2147483648"
+  }
+}
+array(4) {
+  ["QUERY_TABLE"]=>
+  string(5) "TABLE"
+  ["DELIMITER"]=>
+  string(0) ""
+  ["FIELDS"]=>
+  array(2) {
+    [0]=>
+    array(1) {
+      ["FIELDNAME"]=>
+      string(6) "FIELD1"
+    }
+    [1]=>
+    array(1) {
+      ["FIELDNAME"]=>
+      string(6) "FIELD2"
+    }
+  }
+  ["OPTIONS"]=>
+  array(1) {
+    [0]=>
+    array(1) {
+      ["TEXT"]=>
+      string(29) "THIS SHOULD BE INSERTED AS IS"
+    }
+  }
+}
+bool(false)
+array(3) {
+  [0]=>
+  array(5) {
+    ["FIELD1"]=>
+    string(4) "ABCD"
+    ["FIELD2"]=>
+    string(2) "56"
+    ["FIELD3"]=>
+    string(8) "20150406"
+    ["FIELD4"]=>
+    string(6) "132044"
+    ["FIELD5"]=>
+    string(7) "5674365"
+  }
+  [1]=>
+  array(5) {
+    ["FIELD1"]=>
+    string(5) "TESTC"
+    ["FIELD2"]=>
+    string(3) "159"
+    ["FIELD3"]=>
+    string(8) "20120114"
+    ["FIELD4"]=>
+    string(6) "091332"
+    ["FIELD5"]=>
+    string(5) "-1698"
+  }
+  [2]=>
+  array(5) {
+    ["FIELD1"]=>
+    string(5) "  OTH"
+    ["FIELD2"]=>
+    string(1) "0"
+    ["FIELD3"]=>
+    string(8) "19850828"
+    ["FIELD4"]=>
+    string(6) "221032"
+    ["FIELD5"]=>
+    string(11) "-2147483648"
+  }
+}
+array(3) {
+  ["QUERY_TABLE"]=>
+  string(5) "TABLE"
+  ["DELIMITER"]=>
+  string(0) ""
+  ["FIELDS"]=>
+  array(2) {
+    [0]=>
+    array(1) {
+      ["FIELDNAME"]=>
+      string(6) "FIELD1"
+    }
+    [1]=>
+    array(1) {
+      ["FIELDNAME"]=>
+      string(6) "FIELD4"
+    }
+  }
+}
+bool(false)
+array(3) {
+  [0]=>
+  array(5) {
+    ["ALIAS1"]=>
+    string(10) "ABCD      "
+    ["FIELD2"]=>
+    string(4) "56  "
+    ["FIELD3"]=>
+    string(8) "20150406"
+    ["ALIAS4"]=>
+    string(6) "132044"
+    ["FIELD5"]=>
+    string(11) "5674365    "
+  }
+  [1]=>
+  array(5) {
+    ["ALIAS1"]=>
+    string(10) "TESTC     "
+    ["FIELD2"]=>
+    string(4) "159 "
+    ["FIELD3"]=>
+    string(8) "20120114"
+    ["ALIAS4"]=>
+    string(6) "091332"
+    ["FIELD5"]=>
+    string(11) "-1698      "
+  }
+  [2]=>
+  array(5) {
+    ["ALIAS1"]=>
+    string(10) "  OTH     "
+    ["FIELD2"]=>
+    string(4) "0   "
+    ["FIELD3"]=>
+    string(8) "19850828"
+    ["ALIAS4"]=>
+    string(6) "221032"
+    ["FIELD5"]=>
+    string(11) "-2147483648"
+  }
+}

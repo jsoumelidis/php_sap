@@ -3,7 +3,7 @@ sap_connect() error behavior
 --FILE--
 <?php
 /* test accepts array */
-try { $c = sap_connect('string'); }
+try { $c = sap_connect(null); }
 catch (TypeError $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
@@ -21,6 +21,6 @@ catch (SapConnectionException $e) {
 }
 ?>
 --EXPECT--
-Argument 1 passed to sap_connect() must be of the type array, string given
+Argument 1 passed to sap_connect() must be of the type array, null given
 Logon parameters array must not be empty
 SapConnectionException
