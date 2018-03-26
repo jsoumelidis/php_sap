@@ -2661,6 +2661,16 @@ PHP_METHOD(SapRfcReadTable, select)
                 );
                 return;
             }
+
+            if (Z_STRLEN_P(zfieldname) == 0) {
+                zend_throw_exception_ex(
+                    spl_ce_InvalidArgumentException,
+                    -1,
+                    "Argument 1 passed to %s::select() must be an array of non-empty strings, empty string detected",
+                    Z_OBJCE_P(getThis())->name->val
+                );
+                return;
+            }
         }
         ZEND_HASH_FOREACH_END();
     }
