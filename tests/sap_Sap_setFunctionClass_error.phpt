@@ -2,6 +2,8 @@
 Sap::setFunctionClass() error behavior
 --FILE--
 <?php
+$config = include 'config.inc';
+
 $s = new Sap();
 
 /* test accepts string */

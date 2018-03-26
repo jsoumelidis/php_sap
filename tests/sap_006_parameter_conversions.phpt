@@ -18,9 +18,11 @@ catch (Throwable $e) {
 	exit(0);
 }
 
+class SomeClass { public function __toString() { return '!'; } }
+
 $struct = [
 	'RFCFLOAT' => '1.056725e2',
-	'RFCCHAR1' => new class { public function __toString() { return '!'; } },
+	'RFCCHAR1' => new SomeClass,
 	'RFCINT2' => '2568',
 	'RFCINT1' => '23',
 	'RFCCHAR4' => 1.256784, //value must be truncated to 4 chars

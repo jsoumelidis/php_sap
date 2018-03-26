@@ -2,6 +2,7 @@
 SapFunction::getName() error behavior
 --FILE--
 <?php
+$config = include 'config.inc';
 
 try { (new SapFunction)->getName(); }
 catch (LogicException $e) {

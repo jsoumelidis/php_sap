@@ -2,6 +2,8 @@
 Sap::setFunctionClass() basic behavior
 --FILE--
 <?php
+$config = include 'config.inc';
+
 class CustomSapFunction extends SapFunction { }
 
 $s = new Sap();

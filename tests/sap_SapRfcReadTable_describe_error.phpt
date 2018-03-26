@@ -2,10 +2,11 @@
 SapRfcReadTable::describe() error behavior
 --FILE--
 <?php
+$config = include 'config.inc';
 
 /* test accepts only string as $table argument */
 try { (new SapRfcReadTable)->describe([]); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -17,7 +18,7 @@ catch (InvalidArgumentException $e) {
 
 /* test $fields argument must be array */
 try { (new SapRfcReadTable)->describe('TABLE', 'invalid'); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -40,7 +41,7 @@ catch (LogicException $e) {
 }
 ?>
 --EXPECTF--
-Argument 1 passed to SapRfcReadTable::describe() must be of the type string, array given
+SapRfcReadTable::describe() expects parameter 1 to be string, array given
 Argument 1 passed to SapRfcReadTable::describe() must be a non-empty string
 Argument 2 passed to SapRfcReadTable::describe() must be of the type array, string given
 Argument 2 passed to SapRfcReadTable::describe() must be an array of strings, element of type integer detected

@@ -2,10 +2,11 @@
 SapRfcReadTable::select() error behavior
 --FILE--
 <?php
+$config = include 'config.inc';
 
 /* test $fields argument does not accept invalid value */
 try { (new SapRfcReadTable)->select(5, 'TABLE'); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -23,7 +24,7 @@ catch (InvalidArgumentException $e) {
 
 /* test $table argument must be string */
 try { (new SapRfcReadTable)->select('*', []); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -33,39 +34,39 @@ catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/* test $where argument must be array or null */
+/* test $where argument must be array */
 try { (new SapRfcReadTable)->select('*', 'TABLE', 'invalid'); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
 /* test $limit argument must be integer */
-try { (new SapRfcReadTable)->select('*', 'TABLE', null, []); }
-catch (TypeError $e) {
+try { (new SapRfcReadTable)->select('*', 'TABLE', [], []); }
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
 /* test $limit argument does not accept negative integer */
-try { (new SapRfcReadTable)->select('*', 'TABLE', null, -1); }
+try { (new SapRfcReadTable)->select('*', 'TABLE', [], -1); }
 catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
 /* test $offset argument must be integer */
-try { (new SapRfcReadTable)->select('*', 'TABLE', null, 5, []); }
-catch (TypeError $e) {
-	echo $e->getMessage(), PHP_EOL;
-}
-
-/* test $offset argument does not accept negative integer */
-try { (new SapRfcReadTable)->select('*', 'TABLE', null, 0, -3); }
+try { (new SapRfcReadTable)->select('*', 'TABLE', [], 5, []); }
 catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/* test $rtrim argument must be boolean or null */
-try { (new SapRfcReadTable)->select('*', 'TABLE', null, 5, 0, []); }
-catch (TypeError $e) {
+/* test $offset argument does not accept negative integer */
+try { (new SapRfcReadTable)->select('*', 'TABLE', [], 0, -3); }
+catch (InvalidArgumentException $e) {
+	echo $e->getMessage(), PHP_EOL;
+}
+
+/* test $rtrim argument must be boolean */
+try { (new SapRfcReadTable)->select('*', 'TABLE', [], 5, 0, []); }
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -79,12 +80,12 @@ catch (LogicException $e) {
 Argument 1 passed to SapRfcReadTable::select() must be of the type string or array or null, integer given
 Argument 1 passed to SapRfcReadTable::select() must not be an empty string
 Field names must be strings (integer detected)
-Argument 2 passed to SapRfcReadTable::select() must be of the type string, array given
+SapRfcReadTable::select() expects parameter 2 to be string, array given
 Argument 2 passed to SapRfcReadTable::select() must not be an empty string
 Argument 3 passed to SapRfcReadTable::select() must be of the type array, string given
-Argument 4 passed to SapRfcReadTable::select() must be of the type integer, array given
+SapRfcReadTable::select() expects parameter 4 to be long, array given
 Argument 4 passed to SapRfcReadTable::select() must not be negative (-1)
-Argument 5 passed to SapRfcReadTable::select() must be of the type integer, array given
+SapRfcReadTable::select() expects parameter 5 to be long, array given
 Argument 5 passed to SapRfcReadTable::select() must not be negative (-3)
-Argument 6 passed to SapRfcReadTable::select() must be of the type boolean, array given
+SapRfcReadTable::select() expects parameter 6 to be boolean, array given
 There is no connection to a SAP R/3 system

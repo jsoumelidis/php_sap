@@ -2,6 +2,8 @@
 Sap::__construct() error behavior
 --FILE--
 <?php
+$config = include 'config.inc';
+
 /** test accepts array or null as 1st argument */
 try { $s = new Sap('invalid'); }
 catch (TypeError $e ) {

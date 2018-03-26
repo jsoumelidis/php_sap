@@ -2,6 +2,8 @@
 Sap::call() error behavior
 --FILE--
 <?php
+$config = include 'config.inc';
+
 $s = new Sap();
 
 /** test Sap::call accepts string as 1st argument */

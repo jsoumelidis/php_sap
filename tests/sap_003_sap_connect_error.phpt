@@ -2,9 +2,11 @@
 sap_connect() error behavior
 --FILE--
 <?php
+$config = include 'config.inc';
+
 /* test accepts array */
 try { $c = sap_connect(null); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
