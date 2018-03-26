@@ -12,8 +12,13 @@ if (!$config) {
 <?php
 $config = include 'config.inc';
 
-try { $c = sap_connect($config); }
-catch (Throwable $e) {
+try {
+    $c = sap_connect($config);
+    if (!$c) {
+        throw new Exception();
+    }
+}
+catch (Exception $e) {
 	echo 'Could not connect: ', $e->getMessage(), PHP_EOL;
 	exit(0);
 }

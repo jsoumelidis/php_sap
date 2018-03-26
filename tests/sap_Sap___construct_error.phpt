@@ -6,7 +6,7 @@ $config = include 'config.inc';
 
 /** test accepts array or null as 1st argument */
 try { $s = new Sap('invalid'); }
-catch (TypeError $e ) {
+catch (InvalidArgumentException $e ) {
 	echo $e->getMessage(), PHP_EOL;
 }
 ?>

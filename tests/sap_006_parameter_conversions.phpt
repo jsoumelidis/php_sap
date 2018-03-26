@@ -18,7 +18,7 @@ catch (Throwable $e) {
 	exit(0);
 }
 
-class SomeClass { public function __toString() { return '!'; } }
+class SomeClass { public function __toString() { return '!theseCharsShouldBeTruncated'; } }
 
 $struct = [
 	'RFCFLOAT' => '1.056725e2',

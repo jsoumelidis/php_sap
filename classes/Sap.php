@@ -8,7 +8,7 @@ class Sap
      *
 	 * @param array $logonParameters    System logon parameters
 	 */
-	public function __construct(array $logonParameters = null) {}
+	public function __construct(array $logonParameters = []) {}
 
     /**
      * For documentation regarding logon parameters see the demo sapnwrfc.ini

@@ -31,7 +31,7 @@ class OtherCustomSapFunction extends SapFunction
 
 class RfcPing extends OtherCustomSapFunction
 {
-	public function getName(): string
+	public function getName()
 	{
 		return 'RFC_PING';
 	}

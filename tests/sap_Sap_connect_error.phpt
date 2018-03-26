@@ -8,7 +8,7 @@ $s = new Sap();
 
 /** test accepts array as 1st argument */
 try { $s->connect('invalid'); }
-catch (TypeError $e ) {
+catch (InvalidArgumentException $e ) {
 	echo $e->getMessage(), PHP_EOL;
 }
 

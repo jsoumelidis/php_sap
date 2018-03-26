@@ -20,15 +20,17 @@ catch (LogicException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
-/** test raises warning and returns null if invalid 2nd argument provided */
-$f = (new Sap())->fetchFunction('RFC_PING', 'invalid');
-var_dump(gettype($f));
+/** test raises exception if invalid 2nd argument provided */
+try { $f = (new Sap())->fetchFunction('RFC_PING', 'invalid'); }
+catch (InvalidArgumentException $e) {
+    echo $e->getMessage(), PHP_EOL;
+}
 
 $s->connect($config);
 
 /** test throws TypeError if invalid 1st argument provided */
 try { $s ->fetchFunction(new stdClass); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -40,8 +42,6 @@ catch (SapException $e) {
 ?>
 --EXPECTF--
 There is no connection to a SAP R/3 system
-
-Warning: Sap::fetchFunction() expects parameter 2 to be a class name derived from SapFunction, 'invalid' given in %s on line %d
-string(4) "NULL"
+Sap::fetchFunction() expects parameter 2 to be a class name derived from SapFunction, 'invalid' given
 Argument 1 of Sap::fetchFunction() must be a string or a SapFunction object (object given)
 string(12) "SapException"

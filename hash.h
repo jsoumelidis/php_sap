@@ -4,6 +4,24 @@
 
 #include "php.h"
 
+#define ZEND_HASH_FOREACH(ht) do {                                                  \
+    HashTable *__ht = (ht);                                                         \
+    HashPosition __pos;                                                             \
+    void **__data;                                                                  \
+    for (zend_hash_internal_pointer_reset_ex(__ht, &__pos);                         \
+        zend_hash_get_current_data_ex(__ht, (void**)&__data, &__pos) == SUCCESS;    \
+        zend_hash_move_forward_ex(__ht, &__pos))                                    \
+    {
+
+#define ZEND_HASH_FOREACH_VAL(ht, _zval) ZEND_HASH_FOREACH(ht) _zval = *__data;
+#define ZEND_HASH_FOREACH_KEY_VAL(ht, _h, _key, _keylen, _zval) ZEND_HASH_FOREACH_VAL(ht, _zval) _h = __pos->h; _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
+#define ZEND_HASH_FOREACH_STR_KEY(ht, _key, _keylen) ZEND_HASH_FOREACH(ht) _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
+#define ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _zval) ZEND_HASH_FOREACH_VAL(ht, _zval) _key = __pos->nKeyLength ? (char*)__pos->arKey : NULL; _keylen = __pos->nKeyLength - 1;
+#define ZEND_HASH_FOREACH_STR_KEY_PTR(ht, _key, _keylen, _ptr) ZEND_HASH_FOREACH_STR_KEY_VAL(ht, _key, _keylen, _ptr);
+#define ZEND_HASH_FOREACH_END() \
+    }                           \
+} while(0)
+
 /* hash functions */
 static void * my_zend_hash_find_ptr(HashTable *ht, char *key, int keylen)
 {

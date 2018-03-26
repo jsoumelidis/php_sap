@@ -13,9 +13,6 @@ if (!$config) {
 /** test constructor no arguments */
 $s = new Sap();
 
-/** test constructor passing null as logon parameters is ok */
-$s = new Sap(null);
-
 $config = include 'config.inc';
 
 $s = new Sap($config);

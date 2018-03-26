@@ -7,13 +7,13 @@ $config = include 'config.inc';
 /* test accepts array */
 try { $c = sap_connect(null); }
 catch (InvalidArgumentException $e) {
-	echo $e->getMessage(), PHP_EOL;
+    echo $e->getMessage(), PHP_EOL;
 }
 
 /* test does not accept empty array */
 try { $c = sap_connect([]); }
 catch (InvalidArgumentException $e) {
-	echo $e->getMessage(), PHP_EOL;
+    echo $e->getMessage(), PHP_EOL;
 }
 
 /* test throws SapConnectionException on invalid connection arguments */

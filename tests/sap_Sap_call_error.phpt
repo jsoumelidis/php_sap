@@ -8,19 +8,19 @@ $s = new Sap();
 
 /** test Sap::call accepts string as 1st argument */
 try { $s->call([]); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
 /** test Sap::call accepts array or null as 2nd argument */
 try { $s->call('RFC_PING', 'invalid'); }
-catch (TypeError $e) {
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
 /** test Sap::call accepts bool or null as 3rd argument */
-try { $s->call('RFC_PING', null, []); }
-catch (TypeError $e) {
+try { $s->call('RFC_PING', [], []); }
+catch (InvalidArgumentException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -31,7 +31,7 @@ catch (LogicException $e) {
 }
 ?>
 --EXPECT--
-Argument 1 passed to Sap::call() must be of the type string, array given
+Sap::call() expects parameter 1 to be string, array given
 Argument 2 passed to Sap::call() must be of the type array, string given
-Argument 3 passed to Sap::call() must be of the type boolean, array given
+Sap::call() expects parameter 3 to be boolean, array given
 There is no connection to a SAP R/3 system

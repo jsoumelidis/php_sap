@@ -20,9 +20,7 @@
 #include "ext/spl/spl_exceptions.h"
 #include "ext/date/php_date.h"
 
-/* helper macros */
-#include "php_sap_common.h"
-/* zend hash helper functions */
+/* zend hash helpers */
 #include "hash.h"
 
 /* Common exception messages */
@@ -31,6 +29,7 @@
 #define PHP_SAP_FUNC_DESCR_NOT_FETCHED "Function's description has not been fetched"
 #define PHP_SAP_PARAM_NOT_FOUND "Parameter '%s' not found"
 
+/* helper macros */
 #define SAP_ME_ARGS(classname, method) arginfo_##classname##_##method
 #define SAP_FE_ARGS(func) arginfo_func_##func
 
@@ -44,7 +43,7 @@
         __err->l_nwsdkfunction = __funclen;                         \
         memcpy(__err->nwsdkfunction, __func, __funclen);            \
     }                                                               \
-} while (0);
+} while (0)
 
 #define SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, _retval) \
     SAP_ERROR_SET_RFCFUNCTION(_err, _func, strlen(_func));      \
@@ -53,7 +52,15 @@
 #define SAP_ERR_RETURN_FAILURE(_err, _func) SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, FAILURE)
 #define SAP_ERR_RETURN_NULL(_err, _func) SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, NULL)
 
-#define XtSizeOf(type, member) sizeof(((type *)0)->member)
+#define PHP_SAP_PARSE_PARAMS_BEGIN() do {                                                   \
+    zend_error_handling _eh;                                                                \
+    zend_replace_error_handling(EH_THROW, spl_ce_InvalidArgumentException, &_eh TSRMLS_CC);
+#define PHP_SAP_PARSE_PARAMS zend_parse_parameters
+#define PHP_SAP_PARSE_PARAMS_END()                  \
+    zend_restore_error_handling(&_eh TSRMLS_CC);    \
+} while(0)
+
+#define sap_fetch_connection_rsrc(_object) zend_fetch_resource(&_object TSRMLS_CC, -1, PHP_SAP_CONNECTION_RES_NAME, NULL, 1, le_php_sap_connection)
 
 typedef enum _TRIM_TYPE {
     TRIM_NONE = 0x00,
@@ -177,9 +184,9 @@ PHP_SAP_API zend_object_handlers * php_sap_get_sap_handlers(void)
     return &sap_object_handlers;
 }
 
-PHP_SAP_API php_sap_connection * php_sap_get_connection(zval *zsap TSRMLS_DC)
+PHP_SAP_API php_sap_connection * php_sap_get_connection(zval *obj TSRMLS_DC)
 {
-    sap_object *intern = sap_get_sap_object(zsap);
+    sap_object *intern = (sap_object*)zend_object_store_get_object(obj TSRMLS_CC);
 
     return intern->connection;
 }
@@ -196,7 +203,7 @@ PHP_SAP_API zend_object_handlers * php_sap_get_function_handlers(void)
 
 PHP_SAP_API php_sap_function * php_sap_get_function_descr(zval *zfunction TSRMLS_DC)
 {
-    sap_function *intern = sap_get_function_object(zfunction);
+    sap_function *intern = (sap_function*)zend_object_store_get_object(zfunction TSRMLS_CC);
 
     return intern->function_descr;
 }
@@ -291,7 +298,7 @@ const zend_function_entry sap_connection_exception_fe[] = {
 PHP_METHOD(Sap, __construct);
 
 ZEND_BEGIN_ARG_INFO(SAP_ME_ARGS(Sap, __construct), 0)
-    ZEND_ARG_ARRAY_INFO(0, logonParameters, 1)
+    ZEND_ARG_ARRAY_INFO(0, logonParameters, 0)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, connect);
@@ -651,7 +658,7 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
     fci.function_name = &function_name;
 
     if (!fn_proxy && SUCCESS != zend_hash_find(&scope_ce->function_table, Z_STRVAL(function_name), Z_STRLEN(function_name) + 1, (void**)&fn_proxy)) {
-        zend_error(E_CORE_ERROR, "Couldn't find implementation for method %s::%s", sap_get_str_val(scope_ce->name), func);
+        zend_error(E_CORE_ERROR, "Couldn't find implementation for method %s::%s", scope_ce->name, func);
     }
 
     /* Set function call arguments */
@@ -734,9 +741,9 @@ static inline void sap_create_error(SAPRFC_ERROR_INFO *err, const char *key, RFC
     err->err.code = code;
 }
 
-static inline zval sap_error_to_exception(SAPRFC_ERROR_INFO *err, zend_class_entry *ce TSRMLS_DC)
+static inline zval* sap_error_to_exception(SAPRFC_ERROR_INFO *err, zend_class_entry *ce TSRMLS_DC)
 {
-    zval exception;
+    zval *exception;
     char *key, *msgType, *msgId, *msgNumber, *msgv1, *msgv2, *msgv3, *msgv4, *message;
     int keyLen, msgTypeLen, msgIdLen, msgNumberLen, msgv1Len, msgv2Len, msgv3Len, msgv4Len, messageLen;
     SAPRFC_ERROR_INFO e;
@@ -745,49 +752,51 @@ static inline zval sap_error_to_exception(SAPRFC_ERROR_INFO *err, zend_class_ent
         ce = sap_ce_SapException;
     }
 
-    object_init_ex(&exception, ce);
+    MAKE_STD_ZVAL(exception);
+
+    object_init_ex(exception, ce);
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgType, &msgType, &msgTypeLen, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "MSGTY", sizeof("MSGTY") - 1, msgType, msgTypeLen TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "MSGTY", sizeof("MSGTY") - 1, msgType, msgTypeLen TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgClass, &msgId, &msgIdLen, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "MSGID", sizeof("MSGID") - 1, msgId, msgIdLen TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "MSGID", sizeof("MSGID") - 1, msgId, msgIdLen TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgNumber, &msgNumber, &msgNumberLen, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "MSGNO", sizeof("MSGNO") - 1, msgNumber, msgNumberLen TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "MSGNO", sizeof("MSGNO") - 1, msgNumber, msgNumberLen TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.message, &message, &messageLen, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "message", sizeof("message") - 1, message, messageLen TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "message", sizeof("message") - 1, message, messageLen TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV1, &msgv1, &msgv1Len, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "MSGV1", sizeof("MSGV1") - 1, msgv1, msgv1Len TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "MSGV1", sizeof("MSGV1") - 1, msgv1, msgv1Len TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV2, &msgv2, &msgv2Len, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "MSGV2", sizeof("MSGV2") - 1, msgv2, msgv2Len TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "MSGV2", sizeof("MSGV2") - 1, msgv2, msgv2Len TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV3, &msgv3, &msgv3Len, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "MSGV3", sizeof("MSGV3") - 1, msgv3, msgv3Len TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "MSGV3", sizeof("MSGV3") - 1, msgv3, msgv3Len TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV4, &msgv4, &msgv4Len, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "MSGV4", sizeof("MSGV4") - 1, msgv4, msgv4Len TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "MSGV4", sizeof("MSGV4") - 1, msgv4, msgv4Len TSRMLS_CC);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.key, &key, &keyLen, &e)) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "KEY", sizeof("KEY") - 1, key, keyLen TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "KEY", sizeof("KEY") - 1, key, keyLen TSRMLS_CC);
     }
     
     if (err->l_nwsdkfunction > 0) {
-        zend_update_property_stringl(sap_ce_SapException, &exception, "nwsdkfunction", sizeof("nwsdkfunction") - 1, err->nwsdkfunction, err->l_nwsdkfunction TSRMLS_CC);
+        zend_update_property_stringl(sap_ce_SapException, exception, "nwsdkfunction", sizeof("nwsdkfunction") - 1, err->nwsdkfunction, err->l_nwsdkfunction TSRMLS_CC);
     }
 
-    zend_update_property_long(sap_ce_SapException, &exception, "code", sizeof("code") - 1, err->err.code TSRMLS_CC);
+    zend_update_property_long(sap_ce_SapException, exception, "code", sizeof("code") - 1, err->err.code TSRMLS_CC);
 
     return exception;
 }
@@ -944,7 +953,7 @@ static zend_object_value sap_object_create_object(zend_class_entry *ce TSRMLS_DC
 static zend_object_value sap_object_clone_object(zval *object TSRMLS_DC)
 {
     zend_object_value retval;
-    sap_object *clone_intern, *intern = sap_get_sap_object(object);
+    sap_object *clone_intern, *intern = (sap_object*)zend_object_store_get_object(object TSRMLS_CC);
 
     retval = sap_object_create_object_ex(Z_OBJCE_P(object), &clone_intern TSRMLS_CC);
 
@@ -1002,7 +1011,7 @@ static zend_object_value sap_function_create_object(zend_class_entry *ce TSRMLS_
 static zend_object_value sap_function_clone_object(zval *object TSRMLS_DC)
 {
     zend_object_value retval;
-    sap_function *clintern, *intern = sap_get_function_object(object);
+    sap_function *clintern, *intern = (sap_function*)zend_object_store_get_object(object TSRMLS_CC);
     SAPRFC_ERROR_INFO error;
 
     retval = sap_function_create_object_ex(Z_OBJCE_P(object), &clintern TSRMLS_CC);
@@ -1238,16 +1247,17 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
         }
         default:
         {
-            zval zcopy;
+            zval *zcopy = NULL;
             unsigned int strU8len;
             SAP_UC *strU;
             unsigned int strU16len;
 
             if (Z_TYPE_P(zvalue) != IS_STRING)
             {
-                ZVAL_ZVAL(&zcopy, zvalue, 1, 0);
-                convert_to_string(&zcopy);
-                zvalue = &zcopy;
+                MAKE_STD_ZVAL(zcopy);
+                ZVAL_ZVAL(zcopy, zvalue, 1, 0);
+                convert_to_string(zcopy);
+                zvalue = zcopy;
             }
 
             strU8len = strlenU8(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue));
@@ -1259,14 +1269,14 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
 
                 if (SUCCESS == utf8_substr(Z_STRVAL_P(zvalue), Z_STRLEN_P(zvalue), 0, length, &sub, &sublen))
                 {
-                    if (UNEXPECTED(zvalue == &zcopy)) {
-                        zval_dtor(&zcopy);
+                    if (UNEXPECTED(zvalue == zcopy)) {
+                        zval_dtor(zcopy);
                     }
 
-                    ZVAL_STRINGL(&zcopy, sub, sublen, 1);
+                    ZVAL_STRINGL(zcopy, sub, sublen, 1);
                     efree(sub);
 
-                    zvalue = &zcopy;
+                    zvalue = zcopy;
                 }
             }
 
@@ -1274,8 +1284,8 @@ static int sap_import_scalar(DATA_CONTAINER_HANDLE dh, SAP_UC *name, RFCTYPE typ
                 return FAILURE;
             }
 
-            if (UNEXPECTED(zvalue == &zcopy)) {
-                zval_dtor(&zcopy);
+            if (UNEXPECTED(zvalue == zcopy)) {
+                zval_ptr_dtor(&zcopy);
             }
 
             if (RFC_OK != RfcSetChars(dh, name, strU, strU16len, (RFC_ERROR_INFO*)err)) {
@@ -1818,11 +1828,11 @@ PHP_FUNCTION(sap_connect)
 
     if (SUCCESS != sap_connection_open(crsrc, lparams, &err))
     {
-        zval ex = sap_error_to_exception(&err, sap_ce_SapConnectionException TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&err, sap_ce_SapConnectionException TSRMLS_CC);
 
         php_sap_connection_ptr_dtor(crsrc);
 
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
 
         return;
     }
@@ -1864,8 +1874,8 @@ PHP_FUNCTION(sap_invoke_function)
     crsrc = sap_fetch_connection_rsrc(zcrsrc);
 
     if (NULL == (frsrc = sap_fetch_function(name, namelen, crsrc, &err))) {
-        zval ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 
@@ -1880,8 +1890,8 @@ PHP_FUNCTION(sap_invoke_function)
     php_sap_function_ptr_dtor(frsrc);
 
     if (SUCCESS != result) {
-        zval ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 }
@@ -1999,7 +2009,7 @@ PHP_METHOD(Sap, connect)
         return;
     }
 
-    intern = sap_get_sap_object(getThis());
+    intern = (sap_object*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     previous = intern->connection;
 
@@ -2008,13 +2018,13 @@ PHP_METHOD(Sap, connect)
 
     if (SUCCESS != sap_connection_open(intern->connection, lparams, &error))
     {
-        zval ex = sap_error_to_exception(&error, sap_ce_SapConnectionException TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, sap_ce_SapConnectionException TSRMLS_CC);
 
         php_sap_connection_ptr_dtor(intern->connection);
         //restore previous connection
         intern->connection = previous;
 
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
 
         return;
     }
@@ -2027,19 +2037,19 @@ PHP_METHOD(Sap, connect)
 
 PHP_METHOD(Sap, getFunctionClass)
 {
-    sap_object *intern = intern = sap_get_sap_object(getThis());
+    sap_object *intern = intern = (sap_object*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     RETVAL_STRINGL(intern->func_ce->name, intern->func_ce->name_length, 1);
 }
 
 PHP_METHOD(Sap, setFunctionClass)
 {
-    sap_object *intern = sap_get_sap_object(getThis());
-    zend_class_entry *fce;
+    sap_object *intern = (sap_object*)zend_object_store_get_object(getThis() TSRMLS_CC);
+    zend_class_entry *fce = php_sap_get_function_ce();
 
     PHP_SAP_PARSE_PARAMS_BEGIN()
     {
-        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "C", &fce, php_sap_get_function_ce()) == FAILURE) {
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "C", &fce) == FAILURE) {
             return;
         }
     }
@@ -2071,7 +2081,7 @@ PHP_METHOD(Sap, call)
 
     rtrimIsNull = ZEND_NUM_ARGS() < 3;
 
-    intern = sap_get_sap_object(getThis());
+    intern = (sap_object*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     if (NULL == intern->connection) {
         zend_throw_exception(spl_ce_LogicException, PHP_SAP_NO_CONNECTION, -1 TSRMLS_CC);
@@ -2080,8 +2090,8 @@ PHP_METHOD(Sap, call)
 
     /* Fetch function's information */
     if (NULL == (func = sap_fetch_function(name, namelen, intern->connection, &error))) {
-        zval ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 
@@ -2100,19 +2110,19 @@ PHP_METHOD(Sap, call)
 
     /* Call failed */
     if (SUCCESS != cresult) {
-        zval ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 }
 
 PHP_METHOD(Sap, fetchFunction)
 {
-    sap_object *intern = sap_get_sap_object(getThis());
+    sap_object *intern = (sap_object*)zend_object_store_get_object(getThis() TSRMLS_CC);
     zval *zfunction = NULL;
     char *function_name;
     int function_len;
-    zend_class_entry *fce;
+    zend_class_entry *fce = php_sap_get_function_ce();
     zval *zargs = NULL;
     
     php_sap_function *function_descr_rsrc;
@@ -2121,7 +2131,7 @@ PHP_METHOD(Sap, fetchFunction)
 
     PHP_SAP_PARSE_PARAMS_BEGIN()
     {
-        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|Ca", &zfunction, &fce, php_sap_get_function_ce(), &zargs) == FAILURE) {
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|Ca", &zfunction, &fce, &zargs) == FAILURE) {
             return;
         }
     }
@@ -2188,8 +2198,8 @@ PHP_METHOD(Sap, fetchFunction)
     efree(function_name);
 
     if (NULL == function_descr_rsrc) {
-        zval ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 
@@ -2198,7 +2208,7 @@ PHP_METHOD(Sap, fetchFunction)
         * If the first argument is a SapFunction object, function's description will be stored
         * in that object, instead of creating a new one
         */
-        RETVAL_ZVAL(zfunction, 0, 0);
+        RETVAL_ZVAL(zfunction, 1, 0);
     }
     else {
         /**
@@ -2232,7 +2242,7 @@ PHP_METHOD(Sap, fetchFunction)
     }
 
     /* Fetch the sap_function object from the return value */
-    func = sap_get_function_object(return_value);
+    func = (sap_function*)zend_object_store_get_object(return_value TSRMLS_CC);
 
     /* If a function resource was previously set for the returning SapFunction object, destroy it */
     if (UNEXPECTED(NULL != func->function_descr)) {
@@ -2254,7 +2264,7 @@ PHP_METHOD(Sap, fetchFunction)
 
 PHP_METHOD(Sap, getAttributes)
 {
-    sap_object *intern = sap_get_sap_object(getThis());
+    sap_object *intern = (sap_object*)zend_object_store_get_object(getThis() TSRMLS_CC);
     RFC_ATTRIBUTES attributes;
     SAPRFC_ERROR_INFO err;
     char *utf8;
@@ -2267,12 +2277,12 @@ PHP_METHOD(Sap, getAttributes)
 
     if (RFC_OK != RfcGetConnectionAttributes(intern->connection->handle, &attributes, (RFC_ERROR_INFO*)&err))
     {
-        zval ex;
+        zval *ex;
 
         SAP_ERROR_SET_RFCFUNCTION(&err, "RfcGetConnectionAttributes", sizeof("RfcGetConnectionAttributes") - 1);
 
         ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
 
         return;
     }
@@ -2379,7 +2389,7 @@ PHP_METHOD(SapFunction, getName)
     int namelen;
     SAPRFC_ERROR_INFO error;
 
-    intern = sap_get_function_object(getThis());
+    intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     if (NULL == intern->function_descr) {
         zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1 TSRMLS_CC);
@@ -2388,18 +2398,18 @@ PHP_METHOD(SapFunction, getName)
 
     if (RFC_OK != RfcGetFunctionName(intern->function_descr->fdh, funcNameU, (RFC_ERROR_INFO*)&error))
     {
-        zval ex;
+        zval *ex;
 
         SAP_ERROR_SET_RFCFUNCTION(&error, "RfcGetFunctionName", sizeof("RfcGetFunctionName") - 1);
 
         ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 
     if (SUCCESS != sapuc_to_utf8(funcNameU, &name, &namelen, &error)) {
-        zval ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 
@@ -2422,7 +2432,7 @@ PHP_METHOD(SapFunction, setActive)
     }
     PHP_SAP_PARSE_PARAMS_END();
 
-    intern = sap_get_function_object(getThis());
+    intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     if (NULL == intern->function_descr) {
         zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1 TSRMLS_CC);
@@ -2452,7 +2462,7 @@ PHP_METHOD(SapFunction, isActive)
     }
     PHP_SAP_PARSE_PARAMS_END();
 
-    intern = sap_get_function_object(getThis());
+    intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     if (NULL == intern->function_descr) {
         zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED, -1 TSRMLS_CC);
@@ -2495,7 +2505,7 @@ PHP_METHOD(SapFunction, __invoke)
         imports = Z_ARRVAL_P(args);
     }
 
-    intern = sap_get_function_object(getThis());
+    intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     if (NULL == intern->function_descr || NULL == intern->connection) {
         zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1 TSRMLS_CC);
@@ -2510,9 +2520,9 @@ PHP_METHOD(SapFunction, __invoke)
 
     if (SUCCESS != sap_function_invoke(intern->function_descr, intern->connection, imports, Z_ARRVAL_P(return_value), trimType, &error TSRMLS_CC))
     {
-        zval ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
 
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 }
@@ -2523,7 +2533,7 @@ PHP_METHOD(SapFunction, getParameters)
     char *pkey;
     int pkeylen;
 
-    intern = sap_get_function_object(getThis());
+    intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     if (!intern->function_descr) {
         zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED , -1 TSRMLS_CC);
@@ -2562,7 +2572,7 @@ PHP_METHOD(SapFunction, getTypeName)
     }
     PHP_SAP_PARSE_PARAMS_END();
 
-    intern = sap_get_function_object(getThis());
+    intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     if (!intern->function_descr) {
         zend_throw_exception(spl_ce_LogicException, PHP_SAP_FUNC_DESCR_NOT_FETCHED, -1 TSRMLS_CC);
@@ -2582,14 +2592,14 @@ PHP_METHOD(SapFunction, getTypeName)
     memset(&error, 0, sizeof(SAPRFC_ERROR_INFO));
 
     if (RFC_OK != RfcGetTypeName(sp->param.typeDescHandle, typeNameU, (RFC_ERROR_INFO*)&error)) {
-        zval ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 
     if (SUCCESS != sapuc_to_utf8(typeNameU, &typeName, &typeNameLen, &error)) {
-        zval ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
-        zend_throw_exception_object(&ex TSRMLS_CC);
+        zval *ex = sap_error_to_exception(&error, NULL TSRMLS_CC);
+        zend_throw_exception_object(ex TSRMLS_CC);
         return;
     }
 
@@ -2623,7 +2633,7 @@ PHP_METHOD(SapRfcReadTable, select)
     int offset = 0;
     zend_bool rtrim = PHP_SAP_GLOBALS(rtrim_export_strings);
     HashTable imports, exports;
-    sap_function *intern = sap_get_function_object(getThis());
+    sap_function *intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     PHP_SAP_PARSE_PARAMS_BEGIN()
     {
@@ -2670,7 +2680,7 @@ PHP_METHOD(SapRfcReadTable, select)
             if (Z_STRLEN_P(zfieldname) == 0) {
                 zend_throw_exception_ex(
                     spl_ce_InvalidArgumentException,
-                    -1,
+                    -1 TSRMLS_CC,
                     "Argument 1 passed to %s::select() must be an array of non-empty strings, empty string detected",
                     Z_OBJCE_P(getThis())->name
                 );
@@ -2778,13 +2788,15 @@ PHP_METHOD(SapRfcReadTable, select)
 
             if (Z_TYPE_P(zfields) == IS_STRING)
             {
-                zval *zparam_FIELDS_row, *zfieldname;
+                zval *zparam_FIELDS_row;
 
                 if (NULL != (zparam_FIELDS_row = my_zend_hash_next_index_insert_new_zval(Z_ARRVAL_P(zparam_FIELDS))))
                 {
+                    zval *zfieldname;
+
                     array_init_size(zparam_FIELDS_row, 1);
 
-                    if (NULL != (zfieldname = my_zend_hash_add_new_zval(Z_ARRVAL_P(zparam_FIELDS), "FIELDNAME", sizeof("FIELDNAME") - 1))) {
+                    if (NULL != (zfieldname = my_zend_hash_add_new_zval(Z_ARRVAL_P(zparam_FIELDS_row), "FIELDNAME", sizeof("FIELDNAME") - 1))) {
                         ZVAL_STRINGL(zfieldname, Z_STRVAL_P(zfields), Z_STRLEN_P(zfields), 1);
                     }
                 }
@@ -2901,8 +2913,8 @@ PHP_METHOD(SapRfcReadTable, select)
         zend_hash_destroy(&imports);
 
         if (SUCCESS != result) {
-            zval ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
-            zend_throw_exception_object(&ex TSRMLS_CC);
+            zval *ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
+            zend_throw_exception_object(ex TSRMLS_CC);
             return;
         }
 
@@ -2911,7 +2923,6 @@ PHP_METHOD(SapRfcReadTable, select)
             zval *zresdata;
             zval *zresfields;
 
-            
             if (NULL != (zresdata = my_zend_hash_find_zval(&exports, "DATA", sizeof("DATA") - 1))
                 && Z_TYPE_P(zresdata) == IS_ARRAY
                 && NULL != (zresfields = my_zend_hash_find_zval(&exports, "FIELDS", sizeof("FIELDS") - 1))
@@ -2981,30 +2992,29 @@ PHP_METHOD(SapRfcReadTable, select)
                             ZVAL_ZVAL(&zlonglength, zfieldlength, 1, 0);
                             convert_to_long(&zlonglength);
 
-                            if (NULL != (zfieldvalue = my_zend_hash_add_new_zval(Z_ARRVAL_P(zresrow), trimmedFieldName, trimmedFieldNameLen))) {
-                                continue;
-                            }
+                            if (NULL != (zfieldvalue = my_zend_hash_add_new_zval(Z_ARRVAL_P(zresrow), trimmedFieldName, trimmedFieldNameLen)))
+                            {
+                                if (Z_TYPE_P(wa) == IS_STRING &&
+                                    SUCCESS == utf8_substr(Z_STRVAL_P(wa), Z_STRLEN_P(wa), Z_LVAL(zlongoffset), Z_LVAL(zlonglength), &substr, &substrlen)
+                                    ) {
+                                    if (rtrim)
+                                    {
+                                        char *substrtrimmed;
+                                        int substrtrimmedlen;
 
-                            if (Z_TYPE_P(wa) == IS_STRING &&
-                                SUCCESS == utf8_substr(Z_STRVAL_P(wa), Z_STRLEN_P(wa), Z_LVAL(zlongoffset), Z_LVAL(zlonglength), &substr, &substrlen)
-                            ) {
-                                if (rtrim)
-                                {
-                                    char *substrtrimmed;
-                                    int substrtrimmedlen;
+                                        utf8_trim(substr, substrlen, &substrtrimmed, &substrtrimmedlen, TRIM_RIGHT);
 
-                                    utf8_trim(substr, substrlen, &substrtrimmed, &substrtrimmedlen, TRIM_RIGHT);
+                                        efree(substr);
 
-                                    efree(substr);
+                                        substr = substrtrimmed;
+                                        substrlen = substrtrimmedlen;
+                                    }
 
-                                    substr = substrtrimmed;
-                                    substrlen = substrtrimmedlen;
+                                    ZVAL_STRINGL(zfieldvalue, substr, substrlen, 0);
                                 }
-
-                                ZVAL_STRINGL(zfieldvalue, substr, substrlen, 0);
-                            }
-                            else {
-                                ZVAL_NULL(zfieldvalue);
+                                else {
+                                    ZVAL_NULL(zfieldvalue);
+                                }
                             }
 
                             efree(trimmedFieldName);
@@ -3025,7 +3035,7 @@ PHP_METHOD(SapRfcReadTable, describe)
     char *tableName;
     int tableNameLen;
     HashTable *fields = NULL;
-    sap_function *intern = sap_get_function_object(getThis());
+    sap_function *intern = (sap_function*)zend_object_store_get_object(getThis() TSRMLS_CC);
 
     PHP_SAP_PARSE_PARAMS_BEGIN()
     {
@@ -3137,9 +3147,9 @@ PHP_METHOD(SapRfcReadTable, describe)
         zend_hash_destroy(&imports);
 
         if (SUCCESS != result) {
-            zval ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
+            zval *ex = sap_error_to_exception(&err, NULL TSRMLS_CC);
             zend_hash_destroy(&exports);
-            zend_throw_exception_object(&ex TSRMLS_CC);
+            zend_throw_exception_object(ex TSRMLS_CC);
             return;
         }
 

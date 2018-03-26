@@ -15,11 +15,11 @@ $config = include 'config.inc';
 $rfcReadTable = (new Sap($config))->fetchFunction(new SapRfcReadTable);
 
 /* select all fields of the first 3 system languages */
-$t002 = $rfcReadTable->select('*', 'T002', null, 3, 0, false);
+$t002 = $rfcReadTable->select('*', 'T002', [], 3, 0, false);
 var_dump($t002);
 
 /* select SPRAS, LASPEZ, LAISO aliasing field LASPEZ to SPECIFICATION & LAISO to ISO of the first 3 system languages */
-$t002 = $rfcReadTable->select(['SPRAS', 'LASPEZ' => 'SPECIFICATION', 'LAISO' => 'ISO'], 'T002', null, 3, 0, false);
+$t002 = $rfcReadTable->select(['SPRAS', 'LASPEZ' => 'SPECIFICATION', 'LAISO' => 'ISO'], 'T002', [], 3, 0, false);
 var_dump($t002);
 
 /* select ISO format of the system languages with SPRAS = 'D' */
