@@ -47,7 +47,7 @@ class Sap
      * @throws LogicException   If connection to a SAP system is not available
 	 * @throws SapException     If function not found or other error occured
 	 */
-	public function fetchFunction($function, string $class = null, array $ctor_args = null) : SapFunction {}
+	public function fetchFunction($function, $class = null, array $ctor_args = []) {}
 
 	/**
 	 * Instant call of a Remote Function Module.
@@ -61,7 +61,7 @@ class Sap
      * @throws LogicException   If connection to a SAP system is not available
 	 * @throws SapException     If function not found or other error occured
 	 */
-	public function call(string $function, array $args = null, bool $rtrim = null) : array {}
+	public function call($function, array $args = null, $rtrim = null) {}
 	
 	/**
 	 * Sets the default class, for this connection, when fetching remote functions.
@@ -70,17 +70,17 @@ class Sap
      *
      * @return void
 	 */
-	public function setFunctionClass(string $class) {}
+	public function setFunctionClass($class) {}
 
     /**
      * @return string The default class this connection uses for fetching Remote Function (SapFunction) objects
      */
-	public function getFunctionClass(): string {}
+	public function getFunctionClass() {}
 
 	/**
 	 * Get connection attributes
      *
      * @return array
 	 */
-	public function getAttributes(): array {}
+	public function getAttributes() {}
 }

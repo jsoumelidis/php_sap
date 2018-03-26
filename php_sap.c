@@ -2672,7 +2672,7 @@ PHP_METHOD(SapRfcReadTable, select)
                     spl_ce_InvalidArgumentException,
                     -1,
                     "Argument 1 passed to %s::select() must be an array of non-empty strings, empty string detected",
-                    Z_OBJCE_P(getThis())->name->val
+                    Z_OBJCE_P(getThis())->name
                 );
                 return;
             }

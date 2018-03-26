@@ -7,61 +7,61 @@ class SapException extends Exception
      *
      * @return string
      */
-    public function getMessageKey(): string {}
+    public function getMessageKey() {}
 
     /**
      * Get the type of this error (MSGTY)
      *
      * @return string
      */
-    public function getMessageType(): string {}
+    public function getMessageType() {}
 
     /**
      * Get the id of this error (MSGID)
      *
      * @return string
      */
-    public function getMessageId(): string {}
+    public function getMessageId() {}
 
     /**
      * Get the number of this error (MSGNO)
      *
      * @return string
      */
-    public function getMessageNumber(): string {}
+    public function getMessageNumber() {}
 
     /**
      * Get variable 1 of this error (MSGV1)
      *
      * @return null|string
      */
-    public function getMessageVar1(): ?string {}
+    public function getMessageVar1() {}
 
     /**
      * Get variable 2 of this error (MSGV1)
      *
      * @return null|string
      */
-    public function getMessageVar2(): ?string {}
+    public function getMessageVar2() {}
 
     /**
      * Get variable 3 of this error (MSGV1)
      *
      * @return null|string
      */
-    public function getMessageVar3(): ?string {}
+    public function getMessageVar3() {}
 
     /**
      * Get variable 4 of this error (MSGV1)
      *
      * @return null|string
      */
-    public function getMessageVar4(): ?string {}
+    public function getMessageVar4() {}
 
     /**
      * Get the internal SDK function that caused this error
      *
      * @return null|string
      */
-    public function getNwSdkFunction(): ?string {}
+    public function getNwSdkFunction() {}
 }

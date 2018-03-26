@@ -54,7 +54,7 @@ class SapRfcReadTable extends SapFunction
      *                                  through a Sap object
 	 * @throws SapException             If other error occurred
 	 */
-	public function select($fields, string $table, array $options = [], int $limit = 0, int $offset = 0) : array {}
+	public function select($fields, $table, array $options = [], $limit = 0, $offset = 0) {}
 
     /**
      * Retrieve structure metadata for a table (logon user must have access to read that table).
@@ -88,5 +88,5 @@ class SapRfcReadTable extends SapFunction
      *                                  through a Sap object
      * @throws SapException             If other error occurred
      */
-	public function describe(string $table, array $fields = null): array {}
+	public function describe($table, array $fields = null) {}
 }
