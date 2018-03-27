@@ -825,7 +825,7 @@ static HashTable * sap_function_description_to_array(RFC_FUNCTION_DESC_HANDLE fd
     
     /* Allocate parameters' hashtable */
     ALLOC_HASHTABLE(retval);
-    zend_hash_init(retval, paramCount, NULL, sap_rfc_parameter_ptr_dtor, 0);
+    zend_hash_init(retval, paramCount, NULL, (dtor_func_t)sap_rfc_parameter_ptr_dtor, 0);
 
     for (i = 0; i < paramCount; i++)
     {
