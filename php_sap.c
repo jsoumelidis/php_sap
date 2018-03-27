@@ -3202,7 +3202,7 @@ PHP_INI_MH(OnUpdateSapNwRfcIniDir)
     //Default ini string handling
     OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 
-    if (new_value && SUCCESS == utf8_to_sapuc_l(ZSTR_VAL(new_value), ZSTR_LEN(new_value), &uIniPath, &uIniPathLen, &err))
+    if (new_value && SUCCESS == utf8_to_sapuc_l(new_value, new_value_length, &uIniPath, &uIniPathLen, &err))
     {
         if (RFC_OK != RfcSetIniPath(uIniPath, (RFC_ERROR_INFO*)&err) || RFC_OK != RfcReloadIniFile((RFC_ERROR_INFO*)&err))
         {
