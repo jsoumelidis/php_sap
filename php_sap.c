@@ -100,6 +100,7 @@ typedef struct _sap_object {
 
 ZEND_BEGIN_MODULE_GLOBALS(sap)
     int rtrim_export_strings;
+    char *sapnwrfc_ini_dir;
 ZEND_END_MODULE_GLOBALS(sap)
 
 ZEND_DECLARE_MODULE_GLOBALS(sap)
@@ -107,11 +108,8 @@ ZEND_DECLARE_MODULE_GLOBALS(sap)
 static ZEND_MODULE_GLOBALS_CTOR_D(sap)
 {
     sap_globals->rtrim_export_strings = 0;
+    sap_globals->sapnwrfc_ini_dir = NULL;
 }
-
-PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "Off", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
-PHP_INI_END()
 
 #ifdef SAPwithPTHREADS
 pthread_mutex_t rfc_utf8_to_sapuc_mutex;
@@ -3185,6 +3183,39 @@ PHP_METHOD(SapRfcReadTable, describe)
     }
 }
 /* }}} */
+
+PHP_INI_MH(OnUpdateSapNwRfcIniDir)
+{
+    SAPRFC_ERROR_INFO err;
+    SAP_UC *uIniPath;
+    unsigned int uIniPathLen;
+
+    //Default ini string handling
+    OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
+
+    if (new_value && SUCCESS == utf8_to_sapuc_l(ZSTR_VAL(new_value), ZSTR_LEN(new_value), &uIniPath, &uIniPathLen, &err))
+    {
+        if (RFC_OK != RfcSetIniPath(uIniPath, (RFC_ERROR_INFO*)&err) || RFC_OK != RfcReloadIniFile((RFC_ERROR_INFO*)&err))
+        {
+            char *message;
+            int messageLen;
+            SAPRFC_ERROR_INFO e;
+
+            if (SUCCESS == sapuc_to_utf8_l((SAP_UC*)&err.err.message, sizeof(err.err.message), &message, &messageLen, &e)) {
+                php_error(E_WARNING, "Could not set sapnwrfc.ini path: %s", message);
+            }
+        }
+
+        efree(uIniPath);
+    }
+
+    return SUCCESS;
+}
+
+PHP_INI_BEGIN()
+    STD_PHP_INI_ENTRY("sap.sapnwrfc_ini_dir", NULL, PHP_INI_ALL, OnUpdateSapNwRfcIniDir, sapnwrfc_ini_dir, zend_sap_globals, sap_globals)
+    STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "Off", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
+PHP_INI_END()
 
 PHP_MINIT_FUNCTION(sap)
 {
