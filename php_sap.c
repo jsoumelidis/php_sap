@@ -43,7 +43,7 @@
         __err->l_nwsdkfunction = __funclen;                         \
         memcpy(__err->nwsdkfunction, __func, __funclen);            \
     }                                                               \
-} while (0);
+} while (0)
 
 #define SAP_ERROR_SET_FUNCTION_AND_RETURN(_err, _func, _retval) \
     SAP_ERROR_SET_RFCFUNCTION(_err, _func, strlen(_func));      \

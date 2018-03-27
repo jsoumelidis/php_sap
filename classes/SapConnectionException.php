@@ -2,5 +2,4 @@
 
 class SapConnectionException extends Exception
 {
-
 }

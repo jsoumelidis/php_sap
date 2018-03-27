@@ -2,12 +2,14 @@
 
 class SapFunction
 {
-	/**
-	 * Get function's name
-	 *
-	 * @return string
-	 */
-	public function getName(): string {}
+    /**
+     * Get function's name
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+    }
 
     /**
      * Invokes the function module on the backend and returns it's export parameters.
@@ -26,7 +28,9 @@ class SapFunction
      *                          through a Sap object
      * @throws SapException     RFC raised exception or other error occured
      */
-	public function __invoke(array $imports = null, bool $rtrim = null): array {}
+    public function __invoke(array $imports = null, bool $rtrim = null): array
+    {
+    }
 
     /**
      * Sets a parameter active/inactive.
@@ -44,14 +48,18 @@ class SapFunction
      * @throws LogicException           if function's description has not been fetched through a Sap object
      * @throws UnexpectedValueException if parameter not exists in functions description
      */
-	public function setActive(string $parameter, bool $active = true) {}
+    public function setActive(string $parameter, bool $active = true)
+    {
+    }
 
     /**
      * Retrieve all parameter names for this function module
      *
      * @return string[] Function's parameters as defined in SE37
      */
-	public function getParameters() : array {}
+    public function getParameters(): array
+    {
+    }
 
     /**
      * Get the DDIC name of a TABLE or STRUCTURE parameter
@@ -66,5 +74,7 @@ class SapFunction
      * @throws LogicException           if parameter is not of type STRUCTURE or TABLE
      * @throws SapException             other error occurred
      */
-	public function getTypeName(string $parameter): string {}
+    public function getTypeName(string $parameter): string
+    {
+    }
 }
