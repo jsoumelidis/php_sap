@@ -756,38 +756,47 @@ static inline zval* sap_error_to_exception(SAPRFC_ERROR_INFO *err, zend_class_en
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgType, &msgType, &msgTypeLen, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "MSGTY", sizeof("MSGTY") - 1, msgType, msgTypeLen TSRMLS_CC);
+        efree(msgType);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgClass, &msgId, &msgIdLen, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "MSGID", sizeof("MSGID") - 1, msgId, msgIdLen TSRMLS_CC);
+        efree(msgId);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgNumber, &msgNumber, &msgNumberLen, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "MSGNO", sizeof("MSGNO") - 1, msgNumber, msgNumberLen TSRMLS_CC);
+        efree(msgNumber);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.message, &message, &messageLen, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "message", sizeof("message") - 1, message, messageLen TSRMLS_CC);
+        efree(message);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV1, &msgv1, &msgv1Len, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "MSGV1", sizeof("MSGV1") - 1, msgv1, msgv1Len TSRMLS_CC);
+        efree(msgv1);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV2, &msgv2, &msgv2Len, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "MSGV2", sizeof("MSGV2") - 1, msgv2, msgv2Len TSRMLS_CC);
+        efree(msgv2);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV3, &msgv3, &msgv3Len, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "MSGV3", sizeof("MSGV3") - 1, msgv3, msgv3Len TSRMLS_CC);
+        efree(msgv3);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.abapMsgV4, &msgv4, &msgv4Len, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "MSGV4", sizeof("MSGV4") - 1, msgv4, msgv4Len TSRMLS_CC);
+        efree(msgv4);
     }
 
     if (SUCCESS == sapuc_to_utf8(err->err.key, &key, &keyLen, &e)) {
         zend_update_property_stringl(sap_ce_SapException, exception, "KEY", sizeof("KEY") - 1, key, keyLen TSRMLS_CC);
+        efree(key);
     }
     
     if (err->l_nwsdkfunction > 0) {
