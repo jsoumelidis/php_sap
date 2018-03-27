@@ -11,7 +11,7 @@ PHP_ARG_ENABLE(sap-unicode, SAP unicode support,
 [  --disable-sap-unicode   Disable unicode. Use if connecting to non-unicode R/3 system], yes, no)
 
 PHP_ARG_ENABLE(sap-pthreads, Disable PThreads support,
-[  --disable-sap-pthreads  Disable PThreads support], yes, no);
+[  --disable-sap-pthreads  Disable PThreads support], yes, no)
 
 if test "$PHP_SAP" != "no"; then
   SAPNWRFCSDK="";
