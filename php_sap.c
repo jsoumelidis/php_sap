@@ -101,7 +101,7 @@ typedef struct _sap_object {
 ZEND_BEGIN_MODULE_GLOBALS(sap)
     zend_bool rtrim_export_strings;
     char *trace_dir;
-    zend_long trace_level;
+    int trace_level;
     char *sapnwrfc_ini_dir;
 ZEND_END_MODULE_GLOBALS(sap)
 
@@ -3240,9 +3240,9 @@ PHP_INI_MH(OnUpdateSapNwTraceDir)
     unsigned int uTracePathLen;
 
     //Default ini string handling
-    OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
+    OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 
-    if (new_value && SUCCESS == utf8_to_sapuc_l(ZSTR_VAL(new_value), ZSTR_LEN(new_value), &uTracePath, &uTracePathLen, &err))
+    if (new_value && SUCCESS == utf8_to_sapuc_l(new_value, new_value_length, &uTracePath, &uTracePathLen, &err))
     {
         if (RFC_OK != RfcSetTraceDir(uTracePath, (RFC_ERROR_INFO*)&err))
         {
@@ -3267,7 +3267,7 @@ PHP_INI_MH(OnUpdateSapNwTraceLevel)
     unsigned int traceLevel;
 
     //Default ini long handling
-    if (SUCCESS != OnUpdateLongGEZero(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage)) {
+    if (SUCCESS != OnUpdateLongGEZero(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC)) {
         return FAILURE;
     }
 
