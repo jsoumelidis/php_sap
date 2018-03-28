@@ -131,7 +131,22 @@ Configuration
 *php_sap* extension exposes the following php.ini configuration:
 
 
-```sap.rtrim_export_strings```: *boolean* Default: *Off*
+`sap.sanwrfc_ini_dir`: *string* Default: *empty*
+
+The directory (absolute or relative to current) to look for a sapnwrfc.ini file.
+If empty, the current directory is used.
+
+`sap.trace_dir`: *string* Default: *empty*
+
+The directory (absolute or relative to current) to place RFC trace files.
+If empty, the current directory is used.
+
+`sap.trace_level`: *integer* Default: *0*
+
+RFC trace level for all destinations that do not explicitly define their own trace level.
+Possible values are 0(off), 1(brief), 2(verbose), 3(full),
+
+`sap.rtrim_export_strings`: *boolean* Default: *Off*
 
 Data containing characters (strings) are always transferred from the backend 
 using the full length of their container (as defined in SE37). For example, a parameter of type 
@@ -139,16 +154,6 @@ CHAR(20) containing the word *"Hello"* will be transfered and exported as
 *"Hello&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"*.
 This setting enables/disables automatic right-trimming for those cases.
 > This behavior can be overridden explicitly on every function invocation (see documentation).
-
-```sap.sanwrfc_ini_dir```: *string* Default: *empty*
-
-The directory (absolute or relative to current) to look for a sapnwrfc.ini file.
-If empty, the current directory is used.
-
-```sap.trace_dir```: *string* Default: *empty*
-
-The directory (absolute or relative to current) to place RFC trace files.
-If empty, the current directory is used.
 
 IDEs
 ====

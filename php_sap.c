@@ -3190,28 +3190,42 @@ PHP_INI_MH(OnUpdateSapNwRfcIniDir)
     SAPRFC_ERROR_INFO err;
     SAP_UC *uIniPath;
     unsigned int uIniPathLen;
+    zend_string *real_value = new_value;
 
     //Default ini string handling
-    OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
-
-    if (new_value && new_value->len == 0) {
-        new_value = zend_string_init(".", sizeof(".") - 1, 0);
+    if (SUCCESS != OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage)) {
+        return FAILURE;
     }
 
-    if (new_value && SUCCESS == utf8_to_sapuc_l(ZSTR_VAL(new_value), ZSTR_LEN(new_value), &uIniPath, &uIniPathLen, &err))
+    if (new_value && new_value->len == 0)
     {
-        if (RFC_OK != RfcSetIniPath(uIniPath, (RFC_ERROR_INFO*)&err) || RFC_OK != RfcReloadIniFile((RFC_ERROR_INFO*)&err))
+        if (stage == ZEND_INI_STAGE_STARTUP) {
+            //if value is empty (not set), don't change nwrfcsdk's default ini path
+            return SUCCESS;
+        }
+
+        //nwrfcsdk does not accept empty dir, so we have to explicitly define the current directory
+        real_value = zend_string_init(".", sizeof(".") - 1, 0);
+    }
+
+    if (real_value && SUCCESS == utf8_to_sapuc_l(ZSTR_VAL(real_value), ZSTR_LEN(real_value), &uIniPath, &uIniPathLen, &err))
+    {
+        if (RFC_OK != RfcSetIniPath(uIniPath, (RFC_ERROR_INFO*)&err))
         {
             char *message;
             int messageLen;
             SAPRFC_ERROR_INFO e;
 
             if (SUCCESS == sapuc_to_utf8_l((SAP_UC*)&err.err.message, sizeof(err.err.message), &message, &messageLen, &e)) {
-                php_error(E_WARNING, "Could not set sapnwrfc.ini path to '%s': %s", ZSTR_VAL(new_value), message);
+                php_error(E_WARNING, "Could not set sapnwrfc.ini path to '%s': %s", ZSTR_VAL(real_value), message);
             }
         }
 
         efree(uIniPath);
+    }
+
+    if (real_value != new_value) {
+        zend_string_release(real_value);
     }
 
     return SUCCESS;
@@ -3222,16 +3236,27 @@ PHP_INI_MH(OnUpdateSapNwTraceDir)
     SAPRFC_ERROR_INFO err;
     SAP_UC *uTracePath;
     unsigned int uTracePathLen;
+    zend_string *real_value = new_value;
 
     //Default ini string handling
-    OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
-
-    if (new_value && new_value->len == 0) {
-        new_value = zend_string_init(".", sizeof(".") - 1, 0);
+    if (SUCCESS != OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage)) {
+        return FAILURE;
     }
 
-    if (new_value && SUCCESS == utf8_to_sapuc_l(ZSTR_VAL(new_value), ZSTR_LEN(new_value), &uTracePath, &uTracePathLen, &err))
+    if (real_value && real_value->len == 0)
     {
+        if (stage == ZEND_INI_STAGE_STARTUP) {
+            //if value is empty (not set), don't change nwrfcsdk's default trace dir
+            return SUCCESS;
+        }
+
+        //nwrfcsdk does not accept empty dir, so we have to explicitly define the current directory
+        real_value = zend_string_init(".", sizeof(".") - 1, 0);
+    }
+
+    if (real_value && SUCCESS == utf8_to_sapuc_l(ZSTR_VAL(real_value), ZSTR_LEN(real_value), &uTracePath, &uTracePathLen, &err))
+    {
+
         if (RFC_OK != RfcSetTraceDir(uTracePath, (RFC_ERROR_INFO*)&err))
         {
             char *message;
@@ -3239,11 +3264,15 @@ PHP_INI_MH(OnUpdateSapNwTraceDir)
             SAPRFC_ERROR_INFO e;
 
             if (SUCCESS == sapuc_to_utf8_l((SAP_UC*)&err.err.message, sizeof(err.err.message), &message, &messageLen, &e)) {
-                php_error(E_WARNING, "Could not set trace directory to '%s': %s", ZSTR_VAL(new_value), message);
+                php_error(E_WARNING, "Could not set trace directory to '%s': %s", ZSTR_VAL(real_value), message);
             }
         }
 
         efree(uTracePath);
+    }
+
+    if (real_value != new_value) {
+        zend_string_release(real_value);
     }
 
     return SUCCESS;
@@ -3257,6 +3286,14 @@ PHP_INI_MH(OnUpdateSapNwTraceLevel)
     //Default ini long handling
     if (SUCCESS != OnUpdateLongGEZero(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage)) {
         return FAILURE;
+    }
+
+    if (new_value && new_value->len == 0)
+    {
+        if (stage == ZEND_INI_STAGE_STARTUP) {
+            //if value is empty (not set), don't change default nwrfcsdk's trace level
+            return SUCCESS;
+        }
     }
 
     if (!new_value) {
