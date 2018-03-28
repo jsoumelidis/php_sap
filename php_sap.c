@@ -1846,7 +1846,7 @@ PHP_FUNCTION(sap_connect)
         return;
     }
 
-    ZVAL_RES(return_value, zend_register_resource(crsrc, le_php_sap_connection));
+    RETVAL_RES(zend_register_resource(crsrc, le_php_sap_connection));
 }
 
 PHP_FUNCTION(sap_invoke_function)
@@ -2436,7 +2436,7 @@ PHP_METHOD(SapFunction, getName)
 
 PHP_METHOD(SapFunction, setActive)
 {
-    zend_string *pname;
+    zend_string *pname = NULL;
     zend_bool isActive = SAPRFC_PARAM_ACTIVE;
     sap_function *intern;
     SAPRFC_PARAMETER_DESC *sp;
@@ -2464,7 +2464,7 @@ PHP_METHOD(SapFunction, setActive)
 
 PHP_METHOD(SapFunction, isActive)
 {
-    zend_string *pname;
+    zend_string *pname = NULL;
     sap_function *intern;
     SAPRFC_PARAMETER_DESC *sp;
 
@@ -2565,7 +2565,7 @@ PHP_METHOD(SapFunction, getParameters)
 
 PHP_METHOD(SapFunction, getTypeName)
 {
-    zend_string *pname;
+    zend_string *pname = NULL;
     sap_function *intern;
     SAPRFC_PARAMETER_DESC *sp;
     RFC_ABAP_NAME typeNameU;
@@ -2627,8 +2627,8 @@ PHP_METHOD(SapRfcReadTable, getName)
 
 PHP_METHOD(SapRfcReadTable, select)
 {
-    zval *zfields, *zfieldshelper = NULL;
-    zend_string *tableName;
+    zval *zfields = NULL, *zfieldshelper = NULL;
+    zend_string *tableName = NULL;
     HashTable *htWhere = NULL;
     zend_long rowCount = 0;
     zend_long offset = 0;
@@ -3037,7 +3037,7 @@ PHP_METHOD(SapRfcReadTable, select)
 
 PHP_METHOD(SapRfcReadTable, describe)
 {
-    zend_string *tableName;
+    zend_string *tableName = NULL;
     HashTable *fields = NULL;
     sap_function *intern = sap_get_function_object(getThis());
 
