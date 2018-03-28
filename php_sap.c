@@ -3214,6 +3214,11 @@ PHP_INI_MH(OnUpdateSapNwRfcIniDir)
     //Default ini string handling
     OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 
+    if (new_value && new_value_length == 0) {
+        new_value = ".";
+        new_value_length = 1;
+    }
+
     if (new_value && SUCCESS == utf8_to_sapuc_l(new_value, new_value_length, &uIniPath, &uIniPathLen, &err))
     {
         if (RFC_OK != RfcSetIniPath(uIniPath, (RFC_ERROR_INFO*)&err) || RFC_OK != RfcReloadIniFile((RFC_ERROR_INFO*)&err))
@@ -3241,6 +3246,11 @@ PHP_INI_MH(OnUpdateSapNwTraceDir)
 
     //Default ini string handling
     OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+
+    if (new_value && new_value_length == 0) {
+        new_value = ".";
+        new_value_length = 1;
+    }
 
     if (new_value && SUCCESS == utf8_to_sapuc_l(new_value, new_value_length, &uTracePath, &uTracePathLen, &err))
     {
@@ -3299,9 +3309,9 @@ PHP_INI_MH(OnUpdateSapNwTraceLevel)
 
 PHP_INI_BEGIN()
     /* always parse the trace dir first (?) */
-    STD_PHP_INI_ENTRY("sap.trace_dir", NULL, PHP_INI_ALL, OnUpdateSapNwTraceDir, trace_dir, zend_sap_globals, sap_globals)
-    STD_PHP_INI_ENTRY("sap.trace_level", NULL, PHP_INI_ALL, OnUpdateSapNwTraceLevel, trace_level, zend_sap_globals, sap_globals)
-    STD_PHP_INI_ENTRY("sap.sapnwrfc_ini_dir", NULL, PHP_INI_ALL, OnUpdateSapNwRfcIniDir, sapnwrfc_ini_dir, zend_sap_globals, sap_globals)
+    STD_PHP_INI_ENTRY("sap.trace_dir", "", PHP_INI_ALL, OnUpdateSapNwTraceDir, trace_dir, zend_sap_globals, sap_globals)
+    STD_PHP_INI_ENTRY("sap.trace_level", "", PHP_INI_ALL, OnUpdateSapNwTraceLevel, trace_level, zend_sap_globals, sap_globals)
+    STD_PHP_INI_ENTRY("sap.sapnwrfc_ini_dir", "", PHP_INI_ALL, OnUpdateSapNwRfcIniDir, sapnwrfc_ini_dir, zend_sap_globals, sap_globals)
     STD_PHP_INI_ENTRY("sap.rtrim_export_strings", "Off", PHP_INI_ALL, OnUpdateBool, rtrim_export_strings, zend_sap_globals, sap_globals)
 PHP_INI_END()
 
@@ -3317,8 +3327,6 @@ PHP_MINIT_FUNCTION(sap)
 
     /* Register resources */
     le_php_sap_connection = zend_register_list_destructors_ex(php_sap_connection_rsrc_dtor, NULL, PHP_SAP_CONNECTION_RES_NAME, module_number);
-
-    ZEND_INIT_MODULE_GLOBALS(sap, ZEND_MODULE_GLOBALS_CTOR_N(sap), NULL);
 
     REGISTER_INI_ENTRIES();
 
