@@ -4,27 +4,27 @@ SAP Netweaver Remote Function Calls support for PHP
 This extension is aimed to provide developers a convenient way to invoke remote-enabled ABAP functions
 and retrieve their results from PHP code.
 
-A short example usage:
+A short usage example:
 
 ```php
-	<?php
-	$connection = new Sap($logonParametersArray);
-	
-	/** @var array $result */
-	$result = $connection->call('MY_REMOTE_ENABLED_ABAP_FUNCTION', [
-	    'I_VAR' => 5
-	]);
-	
-	//or using the procedural way...
-	$connection = sap_connect($logonParametersArray);
-	
-	/** @var array $result */
-	$result = sap_invoke_function('MY_REMOTE_ENABLED_ABAP_FUNCTION', $connection, [
-	    'I_VAR' => 5
-	]);
+<?php
+$connection = new Sap($logonParams);
+
+/** @var array $result */
+$result = $connection->call('MY_REMOTE_ENABLED_ABAP_FUNCTION', [
+    'I_VAR' => 5
+]);
+
+//or using the procedural way...
+$connection = sap_connect($logonParams);
+
+/** @var array $result */
+$result = sap_invoke_function('MY_REMOTE_ENABLED_ABAP_FUNCTION', $connection, [
+    'I_VAR' => 5
+]);
 ```
 
-For more examples visit the `examples` directory of this repository.
+For more examples visit the *examples/* directory of this repository.
 
 # Installation
 
@@ -47,12 +47,14 @@ Download and extract the SAP Netweaver RFC SDK package for your platform archite
 	> Note that you should use the same platform (x86 or x64) and thread safety setting (TS or NTS)
 	with your installed PHP.
 4. Clone the appropriate branch of this repository for your PHP version
-	(5.6-dev, 7.0-dev, 7.1-dev, 7.2-dev), or download a packaged release.
-	```
-	git clone https://github.com/jsoumelidis/php_sap.git X.X-dev
-	```
-5. On a VS20XX-xYY command line window *cd* to the cloned (or downloaded) php_sap directory
-	(*XX* is the version and *YY* is the platform, like VS2015-x86), e.g.
+	(5.6-dev, 7.0-dev, 7.1-dev, 7.2-dev), or download a release.
+    ``` 
+    git clone https://github.com/jsoumelidis/php_sap.git M.m-dev
+    ```
+    replacing *M.m* with your Major/minor PHP version (e.g 7.1)
+    
+5. On a VS20XX xYY command line window *cd* to the cloned (or downloaded) php_sap directory
+	(*XX* is the version and *YY* is the platform, like VS2015 x86), e.g.
 	```
 	cd C:\php_sap
 	```
@@ -91,8 +93,9 @@ Download and extract the SAP Netweaver RFC SDK package for your platform archite
 3. Clone the appropriate branch of this repository for your PHP version
    	(5.6-dev, 7.0-dev, 7.1-dev, 7.2-dev), or download a packaged release.
    	```
-   	git clone https://github.com/jsoumelidis/php_sap.git X.X-dev
+   	git clone https://github.com/jsoumelidis/php_sap.git M.m-dev
    	```
+   	replacing *M.m* with your Major/minor PHP version (e.g 7.1)
 4. *cd* to the cloned (or downloaded) php_sap directory:
    	```
    	cd /home/john/php_sap
@@ -122,8 +125,8 @@ Usage
 =====
 
 Code examples demonstrating the usage of the extension is located under the *examples*
-subdirectory of this repository. For a full documentation of the Classes exposed take a look 
-in *classes* subdirectory of this repository.
+subdirectory of this repository. For a full documentation of the classes exposed take a look 
+in *classes/* subdirectory of this repository.
 
 Configuration
 =============
@@ -158,9 +161,9 @@ This setting enables/disables automatic right-trimming for those cases.
 IDEs
 ====
 
-In order to provide autocomplete support for IDEs, you can require jsoumelidis/ext-sap in your
-project's composer.json development dependencies
+In order to provide autocomplete and documentation support for IDEs, you can require 
+jsoumelidis/ext-sap in your project's composer.json development dependencies
 ```
-composer require --dev jsoumelidis/ext-sap X.X-dev
+composer require --dev jsoumelidis/ext-sap M.m.*
 ```
-Replace X.X with your php version (e.g. 7.1-dev)
+Replace M.m with your Major/minor php version (e.g. 7.1.* or 5.6.*)
