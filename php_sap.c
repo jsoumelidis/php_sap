@@ -2852,6 +2852,8 @@ PHP_METHOD(SapRfcReadTable, select)
 
         ZEND_HASH_FILL_PACKED(Z_ARRVAL(zparam_OPTIONS))
         {
+            unsigned long num_inserted = 0;
+
             ZEND_HASH_FOREACH_KEY_VAL(htWhere, h, wfield, zwval)
             {
                 zval zparam_OPTIONS_row, zparam_OPTIONS_row_text;
@@ -2875,14 +2877,13 @@ PHP_METHOD(SapRfcReadTable, select)
                 {
                     char optionText[300];
                     int optionTextLen;
-                    int hasRows = zend_hash_num_elements(Z_ARRVAL(zparam_OPTIONS)) > 1;
 
                     /* "field EQ 'val'" */
                     optionTextLen = snprintf(
                         optionText,
                         sizeof(optionText),
                         "%s%s EQ '%s'",
-                        hasRows ? "AND " : "",
+                        num_inserted > 0 ? "AND " : "",
                         wfield->val,
                         Z_STRVAL(zparam_OPTIONS_row_text)
                     );
@@ -2893,8 +2894,12 @@ PHP_METHOD(SapRfcReadTable, select)
                 }
 
                 zend_hash_str_add_new(Z_ARRVAL(zparam_OPTIONS_row), "TEXT", sizeof("TEXT") - 1, &zparam_OPTIONS_row_text);
+
                 /* Append a new row to OPTIONS table */
                 ZEND_HASH_FILL_ADD(&zparam_OPTIONS_row);
+
+                /* ZEND_HASH_FILL_ADD does not increment HashTable's nNumOfElements until ZEND_HASH_FILL_END */
+                num_inserted++;
             }
             ZEND_HASH_FOREACH_END();
         }
