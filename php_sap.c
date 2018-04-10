@@ -1912,63 +1912,63 @@ PHP_METHOD(SapException, getMessageKey)
 {
     zval *zMessageKey = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "KEY", sizeof("KEY") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageKey, 0, 0);
+    RETURN_ZVAL(zMessageKey, 1, 0);
 }
 
 PHP_METHOD(SapException, getMessageType)
 {
     zval *zMessageType = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGTY", sizeof("MSGTY") - 1, 0, NULL);
     
-    RETURN_ZVAL(zMessageType, 0, 0);
+    RETURN_ZVAL(zMessageType, 1, 0);
 }
 
 PHP_METHOD(SapException, getMessageId)
 {
     zval *zMessageId = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGID", sizeof("MSGID") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageId, 0, 0);
+    RETURN_ZVAL(zMessageId, 1, 0);
 }
 
 PHP_METHOD(SapException, getMessageNumber)
 {
     zval *zMessageNumber = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGNO", sizeof("MSGNO") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageNumber, 0, 0);
+    RETURN_ZVAL(zMessageNumber, 1, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar1)
 {
     zval *zMessageVar1 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV1", sizeof("MSGV1") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar1, 0, 0);
+    RETURN_ZVAL(zMessageVar1, 1, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar2)
 {
     zval *zMessageVar2 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV2", sizeof("MSGV2") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar2, 0, 0);
+    RETURN_ZVAL(zMessageVar2, 1, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar3)
 {
     zval *zMessageVar3 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV3", sizeof("MSGV3") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar3, 0, 0);
+    RETURN_ZVAL(zMessageVar3, 1, 0);
 }
 
 PHP_METHOD(SapException, getMessageVar4)
 {
     zval *zMessageVar4 = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "MSGV4", sizeof("MSGV4") - 1, 0, NULL);
 
-    RETURN_ZVAL(zMessageVar4, 0, 0);
+    RETURN_ZVAL(zMessageVar4, 1, 0);
 }
 
 PHP_METHOD(SapException, getNwSdkFunction)
 {
     zval *zNwSdkFunction = zend_read_property(Z_OBJCE_P(getThis()), getThis(), "nwsdkfunction", sizeof("nwsdkfunction") - 1, 0, NULL);
 
-    RETURN_ZVAL(zNwSdkFunction, 0, 0);
+    RETURN_ZVAL(zNwSdkFunction, 1, 0);
 }
 /* }}} */
 
