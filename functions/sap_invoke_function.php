@@ -10,8 +10,6 @@
  * @return array export/changing/table parameters for this function
  *
  * @throws InvalidArgumentException if $connection is not a valid SAP Connection resource
- * @throws LogicException           if no connection available, or function's description has not been fetched
- *                                  through a Sap object
  * @throws SapException             RFC raised exception or other error occured
  */
 function sap_invoke_function(string $name, $connection, array $imports = null, bool $rtrim = null): array {}
