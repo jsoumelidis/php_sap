@@ -5,7 +5,7 @@ Sap::getAttributes error behavior
 $s = new Sap();
 
 try { $s->getAttributes(); }
-catch (SapConnectionException $e) {
+catch (LogicException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 ?>

@@ -15,7 +15,7 @@ $s = new Sap();
 
 /** test connect() is not called */
 try { $s->getAttributes(); }
-catch (SapConnectionException $e) {
+catch (LogicException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 
@@ -24,7 +24,7 @@ $s = new Sap(null);
 
 /** test connect() is not called */
 try { $s->getAttributes(); }
-catch (SapConnectionException $e) {
+catch (LogicException $e) {
 	echo $e->getMessage(), PHP_EOL;
 }
 

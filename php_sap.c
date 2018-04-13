@@ -2266,7 +2266,7 @@ PHP_METHOD(Sap, getAttributes)
     int utf8len;
 
     if (NULL == intern->connection) {
-        zend_throw_exception(sap_ce_SapConnectionException, PHP_SAP_NO_CONNECTION, -1);
+        zend_throw_exception(spl_ce_LogicException, PHP_SAP_NO_CONNECTION, -1);
         return;
     }
 

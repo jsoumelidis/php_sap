@@ -94,7 +94,7 @@ class Sap
      *
      * @return array
      *
-     * @throws SapConnectionException if no connection is available
+     * @throws LogicException if no connection is available
      */
     public function getAttributes(): array
     {
