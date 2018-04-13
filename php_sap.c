@@ -2266,7 +2266,8 @@ PHP_METHOD(Sap, getAttributes)
     int utf8len;
 
     if (NULL == intern->connection) {
-        zend_error_noreturn(E_ERROR, "No active connection found");
+        zend_throw_exception(sap_ce_SapConnectionException, PHP_SAP_NO_CONNECTION, -1);
+        return;
     }
 
     if (RFC_OK != RfcGetConnectionAttributes(intern->connection->handle, &attributes, (RFC_ERROR_INFO*)&err))

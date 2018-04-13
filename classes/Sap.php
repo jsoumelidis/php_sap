@@ -93,6 +93,8 @@ class Sap
      * Get connection attributes
      *
      * @return array
+     *
+     * @throws SapConnectionException if no connection is available
      */
     public function getAttributes(): array
     {
