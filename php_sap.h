@@ -15,7 +15,7 @@
 #   define PHP_SAP_DEBUG 0
 #endif
 
-#define PHP_SAP_VERSION "7.1.x"
+#define PHP_SAP_VERSION "7.0.x"
 #define PHP_SAP_CONNECTION_RES_NAME "SAP Connection"
 
 #ifdef PHP_WIN32
