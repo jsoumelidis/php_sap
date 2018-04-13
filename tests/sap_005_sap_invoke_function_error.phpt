@@ -37,5 +37,5 @@ catch (TypeError $e) {
 Argument 1 passed to sap_invoke_function() must be of the type string, array given
 Argument 2 passed to sap_invoke_function() must be of the type resource, array given
 Argument 2 passed to sap_invoke_function() must be a resource of type SAP Connection
-Argument 3 passed to sap_invoke_function() must be of the type array, string given
-Argument 4 passed to sap_invoke_function() must be of the type boolean, array given
+Argument 3 passed to sap_invoke_function() must be of the type array or null, string given
+Argument 4 passed to sap_invoke_function() must be of the type boolean or null, array given

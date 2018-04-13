@@ -26,7 +26,7 @@ class Sap
      * @throws InvalidArgumentException If empty array provided
      * @throws SapConnectionException   For invalid logon parameters or other error occured
      */
-    public function connect(array $logonParameters)
+    public function connect(array $logonParameters): void
     {
     }
 
@@ -78,7 +78,7 @@ class Sap
      *
      * @return void
      */
-    public function setFunctionClass(string $class)
+    public function setFunctionClass(string $class): void
     {
     }
 

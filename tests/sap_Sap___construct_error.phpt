@@ -9,4 +9,4 @@ catch (TypeError $e ) {
 }
 ?>
 --EXPECT--
-Argument 1 passed to Sap::__construct() must be of the type array, string given
+Argument 1 passed to Sap::__construct() must be of the type array or null, string given

@@ -23,6 +23,6 @@ catch (LogicException $e) {
 }
 ?>
 --EXPECT--
-Argument 1 passed to SapFunction::__invoke() must be of the type array, string given
-Argument 2 passed to SapFunction::__invoke() must be of the type boolean, array given
+Argument 1 passed to SapFunction::__invoke() must be of the type array or null, string given
+Argument 2 passed to SapFunction::__invoke() must be of the type boolean or null, array given
 Function's description has not been fetched

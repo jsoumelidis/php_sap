@@ -30,6 +30,6 @@ catch (LogicException $e) {
 ?>
 --EXPECT--
 Argument 1 passed to Sap::call() must be of the type string, array given
-Argument 2 passed to Sap::call() must be of the type array, string given
-Argument 3 passed to Sap::call() must be of the type boolean, array given
+Argument 2 passed to Sap::call() must be of the type array or null, string given
+Argument 3 passed to Sap::call() must be of the type boolean or null, array given
 There is no connection to a SAP R/3 system

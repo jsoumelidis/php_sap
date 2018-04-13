@@ -81,10 +81,10 @@ Argument 1 passed to SapRfcReadTable::select() must not be an empty string
 Field names must be strings (integer detected)
 Argument 2 passed to SapRfcReadTable::select() must be of the type string, array given
 Argument 2 passed to SapRfcReadTable::select() must not be an empty string
-Argument 3 passed to SapRfcReadTable::select() must be of the type array, string given
-Argument 4 passed to SapRfcReadTable::select() must be of the type integer, array given
+Argument 3 passed to SapRfcReadTable::select() must be of the type array or null, string given
+Argument 4 passed to SapRfcReadTable::select() must be of the type integer or null, array given
 Argument 4 passed to SapRfcReadTable::select() must not be negative (-1)
-Argument 5 passed to SapRfcReadTable::select() must be of the type integer, array given
+Argument 5 passed to SapRfcReadTable::select() must be of the type integer or null, array given
 Argument 5 passed to SapRfcReadTable::select() must not be negative (-3)
-Argument 6 passed to SapRfcReadTable::select() must be of the type boolean, array given
+Argument 6 passed to SapRfcReadTable::select() must be of the type boolean or null, array given
 There is no connection to a SAP R/3 system
