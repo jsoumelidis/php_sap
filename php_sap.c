@@ -120,13 +120,13 @@ pthread_mutex_t rfc_sapuc_to_utf8_mutex;
 
 PHP_FUNCTION(sap_connect);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_connect), IS_RESOURCE, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_connect), IS_RESOURCE, 0)
     ZEND_ARG_ARRAY_INFO(0, logonParams, 0)
 ZEND_END_ARG_INFO()
 
 PHP_FUNCTION(sap_invoke_function);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_invoke_function), IS_ARRAY, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_FE_ARGS(sap_invoke_function), IS_ARRAY, 0)
     ZEND_ARG_TYPE_INFO(0, moduleName, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO(0, connection, IS_RESOURCE, 0)
     ZEND_ARG_ARRAY_INFO(0, imports, 1)
@@ -224,55 +224,55 @@ PHP_SAP_API zend_class_entry * php_sap_get_exception_ce(void)
 
 PHP_METHOD(SapException, getMessageKey);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageKey), IS_STRING, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageKey), IS_STRING, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getMessageType);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageType), IS_STRING, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageType), IS_STRING, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getMessageId);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageId), IS_STRING, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageId), IS_STRING, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getMessageNumber);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageNumber), IS_LONG, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageNumber), IS_LONG, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getMessageVar1);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar1), IS_STRING, NULL, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar1), IS_STRING, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getMessageVar2);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar2), IS_STRING, NULL, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar2), IS_STRING, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getMessageVar3);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar3), IS_STRING, NULL, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar3), IS_STRING, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getMessageVar4);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar4), IS_STRING, NULL, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getMessageVar4), IS_STRING, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapException, getNwSdkFunction);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getNwSdkFunction), IS_STRING, NULL, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapException, getNwSdkFunction), IS_STRING, 1)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
@@ -305,25 +305,25 @@ ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, connect);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, connect), IS_VOID, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, connect), IS_VOID, 0)
     ZEND_ARG_ARRAY_INFO(0, logonParameters, 0)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, getFunctionClass);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getFunctionClass), IS_STRING, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getFunctionClass), IS_STRING, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, setFunctionClass);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, setFunctionClass), IS_VOID, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, setFunctionClass), IS_VOID, 0)
     ZEND_ARG_TYPE_INFO(0, className, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, call);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, call), IS_ARRAY, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, call), IS_ARRAY, 0)
     ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
     ZEND_ARG_ARRAY_INFO(0, imports, 1)
     ZEND_ARG_TYPE_INFO(0, rtrim, _IS_BOOL, 1)
@@ -331,7 +331,7 @@ ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, fetchFunction);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(SAP_ME_ARGS(Sap, fetchFunction), 0, 1, IS_OBJECT, "SapFunction", 0)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO(SAP_ME_ARGS(Sap, fetchFunction), "SapFunction", 0)
     ZEND_ARG_INFO(0, name)
     ZEND_ARG_TYPE_INFO(0, moduleClass, IS_STRING, 0)
     ZEND_ARG_ARRAY_INFO(0, ctor_args, 0)
@@ -339,7 +339,7 @@ ZEND_END_ARG_INFO()
 
 PHP_METHOD(Sap, getAttributes);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getAttributes), IS_ARRAY, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(Sap, getAttributes), IS_ARRAY, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
@@ -358,39 +358,39 @@ const zend_function_entry sap_fe_Sap[] = {
 
 PHP_METHOD(SapFunction, getName);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getName), IS_STRING, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getName), IS_STRING, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, setActive);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, setActive), _IS_BOOL, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, setActive), _IS_BOOL, 0)
     ZEND_ARG_INFO(0, param)
     ZEND_ARG_INFO(0, isActive)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, isActive);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, isActive), _IS_BOOL, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, isActive), _IS_BOOL, 0)
     ZEND_ARG_INFO(0, param)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, __invoke);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, __invoke), IS_ARRAY, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, __invoke), IS_ARRAY, 0)
     ZEND_ARG_ARRAY_INFO(0, imports, 1)
     ZEND_ARG_TYPE_INFO(0, rtrim, _IS_BOOL, 1)
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, getParameters);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getParameters), IS_ARRAY, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getParameters), IS_ARRAY, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapFunction, getTypeName);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getTypeName), IS_STRING, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapFunction, getTypeName), IS_STRING, 0)
     ZEND_ARG_TYPE_INFO(0, param, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
@@ -410,13 +410,13 @@ const zend_function_entry sap_fe_SapFunction[] = {
 /* SapRfcReadTable */
 PHP_METHOD(SapRfcReadTable, getName);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, getName), IS_STRING, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, getName), IS_STRING, 0)
     /* no arguments */
 ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapRfcReadTable, select);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, select), IS_ARRAY, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, select), IS_ARRAY, 0)
     ZEND_ARG_INFO(0, fields)
     ZEND_ARG_TYPE_INFO(0, table, IS_STRING, 0)
     ZEND_ARG_ARRAY_INFO(0, options, 1)
@@ -427,7 +427,7 @@ ZEND_END_ARG_INFO()
 
 PHP_METHOD(SapRfcReadTable, describe);
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, describe), IS_ARRAY, NULL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(SAP_ME_ARGS(SapRfcReadTable, describe), IS_ARRAY, 0)
     ZEND_ARG_TYPE_INFO(0, table, IS_STRING, 0)
     ZEND_ARG_ARRAY_INFO(0, fields, 0)
 ZEND_END_ARG_INFO()
