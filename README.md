@@ -41,13 +41,13 @@ Download and extract the SAP Netweaver RFC SDK package for your platform archite
 2. Install the appropriate Visual Studio version for your PHP version.
 	* For PHP 5.6.x use VS2012 (VC11)
 	* For PHP 7.0.x and 7.1.x use VS2015 (VC14)
-	* For PHP 7.2.x use VS2017 (VC15)
+	* For PHP 7.2.x and 7.3.x use VS2017 (VC15)
 	> Express or Community versions of Visual Studio are just fine
 3. Download and extract the PHP devel package matching your PHP version from [here](https://windows.php.net/downloads/releases/)
 	> Note that you should use the same platform (x86 or x64) and thread safety setting (TS or NTS)
 	with your installed PHP.
 4. Clone the appropriate branch of this repository for your PHP version
-	(5.6-dev, 7.0-dev, 7.1-dev, 7.2-dev), or download a release.
+	(5.6-dev, 7.0-dev, 7.1-dev, 7.2-dev, 7.3-dev), or download a release.
     ``` 
     git clone https://github.com/jsoumelidis/php_sap.git M.m-dev
     ```
@@ -91,7 +91,7 @@ Download and extract the SAP Netweaver RFC SDK package for your platform archite
 	that contain the path to the libraries and then refresh the cache by executing `sudo ldconfig`
 2. Install PHP devel package matching your PHP version
 3. Clone the appropriate branch of this repository for your PHP version
-   	(5.6-dev, 7.0-dev, 7.1-dev, 7.2-dev), or download a packaged release.
+   	(5.6-dev, 7.0-dev, 7.1-dev, 7.2-dev, 7.3-dev), or download a packaged release.
    	```
    	git clone https://github.com/jsoumelidis/php_sap.git M.m-dev
    	```
