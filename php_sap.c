@@ -669,7 +669,6 @@ static int sap_call_object_method(zval *object, zend_class_entry *scope_ce, cons
 
     /* Setup function call cache */
     fcc.object = fci.object = Z_OBJ_P(object);
-    fcc.initialized = 1;
     fcc.function_handler = fn_proxy;
     fcc.calling_scope = scope_ce;
     fcc.called_scope = scope_ce;
