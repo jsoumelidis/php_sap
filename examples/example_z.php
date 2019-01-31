@@ -5,7 +5,7 @@ class PartnerRepository extends SapFunction
 	#My system specific function, don't bother
 	const RFC_FUNCTION_NAME = 'Z_RFC_PARTNER_SELECT';
 	
-	public function getName()
+	public function getName() : string
 	{
 		return self::RFC_FUNCTION_NAME;
 	}
